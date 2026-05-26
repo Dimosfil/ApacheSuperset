@@ -1,5 +1,7 @@
 import os
 
+from cachelib.redis import RedisCache
+
 
 SECRET_KEY = os.getenv("SUPERSET_SECRET_KEY", "change-me-industrial-bi-cockpit-demo-key")
 
@@ -26,6 +28,13 @@ CACHE_CONFIG = {
 }
 
 DATA_CACHE_CONFIG = CACHE_CONFIG
+RESULTS_BACKEND = RedisCache(
+    host=REDIS_HOST,
+    port=int(REDIS_PORT),
+    db=2,
+    key_prefix="industrial_bi_sql_lab_results_",
+)
+
 
 class CeleryConfig:
     broker_url = f"redis://{REDIS_HOST}:{REDIS_PORT}/0"

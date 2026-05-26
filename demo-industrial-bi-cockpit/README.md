@@ -24,10 +24,10 @@ The demo should feel like a small real BI product, not a generic chart gallery.
 A reproducible local stack:
 
 - Apache Superset
-- PostgreSQL with synthetic industrial data
+- PostgreSQL with rich synthetic industrial data
 - Redis and Celery for async/cache background capabilities
 - Superset config overrides
-- seeded dashboard, datasets, metrics, filters, and roles
+- seeded mock industrial objects, dashboard dataset, metrics, and filters
 - optional custom React/TypeScript visualization plugin
 
 ## Quick Start
@@ -47,6 +47,31 @@ Login:
 
 ```text
 admin / admin
+```
+
+The database seed is intentionally dense enough for screen recording: 5 plants,
+15 production lines, 60 equipment assets, 180 days of hourly production events,
+downtime, quality checks, and maintenance orders.
+
+If the stack was already started before the mock data was expanded, rerun the
+Python reseed path against local PostgreSQL:
+
+```powershell
+make seed-local
+```
+
+Or recreate the PostgreSQL volume and let Docker run `db/init.sql` and
+`db/seed.sql` again:
+
+```powershell
+docker compose down -v
+docker compose up
+```
+
+If the dashboard list is empty after startup, create the demo dashboard objects:
+
+```powershell
+docker compose exec superset python /app/bootstrap/create-demo-dashboard.py
 ```
 
 Detailed reviewer flow: [docs/reviewer-quickstart.md](./docs/reviewer-quickstart.md).

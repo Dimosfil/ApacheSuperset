@@ -14,6 +14,34 @@ generated outputs, secrets, credentials, or private production data.
 
 ## Tasks
 
+### Demo mock data enrichment
+
+Goal: enrich the Industrial BI Cockpit demo with enough mock entities and fact
+rows for video recording.
+
+Planned changes:
+
+- [x] Expand seeded industrial dimensions and facts.
+- [x] Keep SQL init data and optional Python reseed path aligned.
+- [x] Document how to reload data in an existing local stack.
+- [x] Run syntax/config checks that do not require broad runtime changes.
+- [x] Create Superset demo dataset, charts, and dashboard objects.
+- [x] Wire dashboard creation into Superset bootstrap.
+
+Verification:
+
+- [x] `python -m py_compile demo-industrial-bi-cockpit\db\seed.py`
+- [x] `docker compose config`
+- [x] Reseeded the running PostgreSQL container with `db/seed.sql`.
+- [x] Verified row counts and Superset health endpoint.
+- [x] Created `Industrial BI Cockpit` dashboard with 7 charts.
+- [x] Verified dashboard, chart, dataset, and favorite metadata rows.
+
+Risks or dependencies:
+
+- [x] Existing Docker volumes do not rerun `db/seed.sql`; reseed requires the
+      Python script or volume recreation.
+
 ### Runtime launch fix
 
 Goal: launch the Industrial BI Cockpit Docker stack locally.

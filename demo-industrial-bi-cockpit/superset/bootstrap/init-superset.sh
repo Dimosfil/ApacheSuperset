@@ -22,3 +22,7 @@ fi
 if [ -f /app/assets/README.md ]; then
   echo "Superset assets folder mounted at /app/assets."
 fi
+
+if [ -f /app/bootstrap/create-demo-dashboard.py ]; then
+  python /app/bootstrap/create-demo-dashboard.py
+fi

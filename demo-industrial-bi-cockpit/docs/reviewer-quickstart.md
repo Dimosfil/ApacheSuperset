@@ -28,11 +28,46 @@ db/init.sql
 db/seed.sql
 ```
 
+The seed includes:
+
+```text
+5 plants
+15 production lines
+60 equipment assets
+180 days of hourly production events
+downtime events, quality checks, and maintenance orders
+```
+
 The main analytical view is:
 
 ```text
 v_production_hourly
 ```
+
+If a previous Docker volume already exists, `db/seed.sql` will not run again
+automatically. Refresh the mock objects with:
+
+```powershell
+make seed-local
+```
+
+Or reset the local demo database volume:
+
+```powershell
+docker compose down -v
+docker compose up
+```
+
+## Demo Dashboard Objects
+
+If the dashboard list is empty, create the demo dataset, charts, and dashboard:
+
+```powershell
+docker compose exec superset python /app/bootstrap/create-demo-dashboard.py
+```
+
+The dashboard is created as published, certified, owned by `Demo Admin`, and
+favorited for the admin user so the default list filters can find it.
 
 ## Superset Setup
 
@@ -67,7 +102,7 @@ superset/assets/dataset-metrics.sql
 
 - Superset config is project-specific.
 - Redis cache and Celery are wired.
-- PostgreSQL contains an industrial demo schema and 90 days of data.
+- PostgreSQL contains an industrial demo schema and 180 days of data.
 - Dataset metrics and Jinja query examples are included.
 
 ## What Comes Next
