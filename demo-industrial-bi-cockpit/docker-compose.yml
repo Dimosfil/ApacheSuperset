@@ -1,0 +1,119 @@
+x-superset-image: &superset-image
+  image: ${SUPERSET_RUNTIME_IMAGE:-industrial-bi-superset:local}
+  build:
+    context: .
+    dockerfile: superset/Dockerfile
+    args:
+      SUPERSET_BASE_IMAGE: ${SUPERSET_IMAGE:-apache/superset:latest}
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-industrial_bi}
+      POSTGRES_USER: ${POSTGRES_USER:-industrial}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-industrial}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./db/init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+      - ./db/seed.sql:/docker-entrypoint-initdb.d/02-seed.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-industrial} -d ${POSTGRES_DB:-industrial_bi}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  superset:
+    <<: *superset-image
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      SUPERSET_CONFIG_PATH: /app/pythonpath/superset_config.py
+      SUPERSET_SECRET_KEY: ${SUPERSET_SECRET_KEY:-change-me-industrial-bi-cockpit-demo-key}
+      SUPERSET_ADMIN_USERNAME: ${SUPERSET_ADMIN_USERNAME:-admin}
+      SUPERSET_ADMIN_PASSWORD: ${SUPERSET_ADMIN_PASSWORD:-admin}
+      SUPERSET_ADMIN_FIRSTNAME: ${SUPERSET_ADMIN_FIRSTNAME:-Demo}
+      SUPERSET_ADMIN_LASTNAME: ${SUPERSET_ADMIN_LASTNAME:-Admin}
+      SUPERSET_ADMIN_EMAIL: ${SUPERSET_ADMIN_EMAIL:-admin@example.com}
+      POSTGRES_HOST: ${POSTGRES_HOST:-postgres}
+      POSTGRES_PORT: ${POSTGRES_PORT:-5432}
+      POSTGRES_DB: ${POSTGRES_DB:-industrial_bi}
+      POSTGRES_USER: ${POSTGRES_USER:-industrial}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-industrial}
+      REDIS_HOST: ${REDIS_HOST:-redis}
+      REDIS_PORT: ${REDIS_PORT:-6379}
+    ports:
+      - "${SUPERSET_PORT:-8088}:8088"
+    volumes:
+      - ./superset/superset_config.py:/app/pythonpath/superset_config.py:ro
+      - ./superset/bootstrap:/app/bootstrap:ro
+      - ./superset/assets:/app/assets:ro
+    command: ["/bin/sh", "-c", "sh /app/bootstrap/init-superset.sh && superset run -h 0.0.0.0 -p 8088"]
+
+  superset-worker:
+    <<: *superset-image
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      superset:
+        condition: service_started
+    environment:
+      SUPERSET_CONFIG_PATH: /app/pythonpath/superset_config.py
+      SUPERSET_SECRET_KEY: ${SUPERSET_SECRET_KEY:-change-me-industrial-bi-cockpit-demo-key}
+      POSTGRES_HOST: ${POSTGRES_HOST:-postgres}
+      POSTGRES_PORT: ${POSTGRES_PORT:-5432}
+      POSTGRES_DB: ${POSTGRES_DB:-industrial_bi}
+      POSTGRES_USER: ${POSTGRES_USER:-industrial}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-industrial}
+      REDIS_HOST: ${REDIS_HOST:-redis}
+      REDIS_PORT: ${REDIS_PORT:-6379}
+    volumes:
+      - ./superset/superset_config.py:/app/pythonpath/superset_config.py:ro
+    command: ["celery", "--app=superset.tasks.celery_app:app", "worker", "--pool=prefork", "-O", "fair", "-c", "2"]
+    healthcheck:
+      disable: true
+
+  superset-beat:
+    <<: *superset-image
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      superset:
+        condition: service_started
+    environment:
+      SUPERSET_CONFIG_PATH: /app/pythonpath/superset_config.py
+      SUPERSET_SECRET_KEY: ${SUPERSET_SECRET_KEY:-change-me-industrial-bi-cockpit-demo-key}
+      POSTGRES_HOST: ${POSTGRES_HOST:-postgres}
+      POSTGRES_PORT: ${POSTGRES_PORT:-5432}
+      POSTGRES_DB: ${POSTGRES_DB:-industrial_bi}
+      POSTGRES_USER: ${POSTGRES_USER:-industrial}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-industrial}
+      REDIS_HOST: ${REDIS_HOST:-redis}
+      REDIS_PORT: ${REDIS_PORT:-6379}
+    volumes:
+      - ./superset/superset_config.py:/app/pythonpath/superset_config.py:ro
+    command: ["celery", "--app=superset.tasks.celery_app:app", "beat", "--schedule=/tmp/celerybeat-schedule"]
+    healthcheck:
+      disable: true
+
+volumes:
+  postgres-data:

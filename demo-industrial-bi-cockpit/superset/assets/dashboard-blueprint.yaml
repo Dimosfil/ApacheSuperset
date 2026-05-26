@@ -1,0 +1,71 @@
+dashboard:
+  title: Industrial BI Cockpit
+  description: Production efficiency cockpit for industrial BI demo.
+  dataset: v_production_hourly
+  filters:
+    - name: Date range
+      column: event_ts
+      type: time_range
+    - name: Plant
+      column: plant_name
+      type: select
+    - name: Line
+      column: line_name
+      type: select
+    - name: Shift
+      column: shift_name
+      type: select
+    - name: Product family
+      column: product_family
+      type: select
+  charts:
+    - title: OEE
+      type: big_number
+      dataset: v_production_hourly
+      metric: OEE
+    - title: Output
+      type: big_number
+      dataset: v_production_hourly
+      metric: Total Output
+    - title: Downtime Hours
+      type: big_number
+      dataset: downtime_events
+      metric: Downtime Hours
+    - title: Scrap Rate
+      type: big_number
+      dataset: v_production_hourly
+      metric: Scrap Rate
+    - title: Plan vs Fact
+      type: time_series_line
+      dataset: v_production_hourly
+      time_column: event_ts
+      metrics:
+        - sum(planned_units)
+        - sum(actual_units)
+      group_by:
+        - plant_name
+    - title: Downtime By Reason
+      type: bar
+      dataset: downtime_events
+      dimension: reason_category
+      metric: Downtime Hours
+    - title: Line And Shift OEE
+      type: heatmap_or_pivot
+      dataset: v_production_hourly
+      rows:
+        - line_name
+      columns:
+        - shift_name
+      metric: avg(oee)
+    - title: Incident Details
+      type: table
+      dataset: downtime_events
+      columns:
+        - started_at
+        - ended_at
+        - plant_id
+        - line_id
+        - equipment_id
+        - reason_category
+        - reason_detail
+        - is_planned

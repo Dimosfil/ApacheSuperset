@@ -1,0 +1,123 @@
+# Pending Tasks
+
+Use this file for active project-wide plans and multi-step work.
+
+Keep entries concise and task-relevant. Do not store full diffs, large logs,
+generated outputs, secrets, credentials, or private production data.
+
+## Status Markers
+
+- `[ ]` not started
+- `[~]` in progress
+- `[x]` done
+- `[!]` blocked or needs attention
+
+## Tasks
+
+### Runtime launch fix
+
+Goal: launch the Industrial BI Cockpit Docker stack locally.
+
+Planned changes:
+
+- [x] Add missing Superset PostgreSQL driver support if required by runtime.
+- [x] Recreate the affected Docker services.
+- [x] Verify Superset responds on `http://localhost:8088`.
+
+Verification:
+
+- [x] `docker compose ps`
+- [x] HTTP check for Superset login page
+
+Notes:
+
+- First runtime attempt failed because the Superset image did not include
+  `psycopg2`, while `superset_config.py` uses `postgresql+psycopg2`.
+
+### Sprint 1 execution
+
+Goal: execute Sprint 1 for the Industrial BI Cockpit demo, one backlog item at
+a time.
+
+Planned changes:
+
+- [x] 1. Project skeleton.
+- [x] 2. Docker Compose baseline.
+- [x] 3. Synthetic industrial data.
+- [x] 4. Superset bootstrap.
+- [x] 5. Dashboard MVP.
+- [x] 6. Documentation and smoke check.
+
+Execution order:
+
+- [x] Create folders and placeholder files.
+- [x] Fill service definitions and config.
+- [x] Fill database schema and seed script.
+- [x] Fill Superset initialization scripts.
+- [x] Fill dashboard/dataset planning assets.
+- [x] Verify syntax and file layout.
+
+Risks or dependencies:
+
+- [x] Docker image pulls may require network access when running the stack.
+
+Verification:
+
+- [x] Check generated file list.
+- [x] Run syntax checks for scripts where possible.
+- [x] Optionally run Docker Compose config validation.
+
+Notes:
+
+- Docker runtime startup is intentionally paused by user request. Continue by
+  finishing project files and documentation only.
+
+### Sprint 1 planning
+
+Goal: formalize the Industrial BI Cockpit demo as the first implementation
+sprint.
+
+Planned changes:
+
+- [x] Create Sprint 1 scope document.
+- [x] Define deliverables, backlog, acceptance criteria, and demo script.
+- [x] Link Sprint 1 from the demo README.
+
+Execution order:
+
+- [x] Draft sprint document.
+- [x] Update README navigation.
+- [x] Verify files.
+
+Risks or dependencies:
+
+- [x] Sprint is documentation-only for now; no external services required.
+
+Verification:
+
+- [x] Review Sprint 1 file and README link.
+
+### Demo proposal files
+
+Goal: create a separate folder with a file-by-file Superset demo concept for a
+full-stack Apache Superset vacancy response.
+
+Planned changes:
+
+- [x] Add demo specification folder.
+- [x] Split idea into README, architecture, implementation plan, data model,
+  Superset customization notes, and response pitch.
+
+Execution order:
+
+- [x] Restore local instruction context.
+- [x] Create proposal files.
+- [x] Verify created file list.
+
+Risks or dependencies:
+
+- [x] No runtime dependencies needed; this is documentation/spec work.
+
+Verification:
+
+- [x] List created files and spot-check key content.

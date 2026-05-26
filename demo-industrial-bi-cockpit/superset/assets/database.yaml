@@ -1,0 +1,9 @@
+databases:
+  - database_name: Industrial BI PostgreSQL
+    sqlalchemy_uri: postgresql+psycopg2://industrial:industrial@postgres:5432/industrial_bi
+    expose_in_sqllab: true
+    allow_ctas: true
+    allow_cvas: true
+    allow_dml: false
+    allow_run_async: true
+    extra: "{}"
