@@ -52,6 +52,14 @@ FEATURE_FLAGS = {
     "ALERT_REPORTS": True,
 }
 
+LANGUAGES = {
+    "en": {"flag": "us", "name": "English"},
+    "ru": {"flag": "ru", "name": "Russian"},
+}
+BABEL_DEFAULT_LOCALE = os.getenv("SUPERSET_DEFAULT_LOCALE", "en")
+BABEL_DEFAULT_FOLDER = "superset/translations"
+SUPERSET_PROJECT_LOCALE = os.getenv("SUPERSET_PROJECT_LOCALE", BABEL_DEFAULT_LOCALE)
+
 SUPERSET_WEBSERVER_TIMEOUT = 120
 SQLLAB_TIMEOUT = 120
 SQLLAB_CTAS_NO_LIMIT = True

@@ -1,4 +1,5 @@
 import json
+import os
 from datetime import datetime
 from uuid import uuid4
 
@@ -11,7 +12,53 @@ from superset.security import SupersetSecurityManager
 
 DATABASE_NAME = "Industrial BI PostgreSQL"
 SQLALCHEMY_URI = "postgresql+psycopg2://industrial:industrial@postgres:5432/industrial_bi"
-DASHBOARD_TITLE = "Industrial BI Cockpit"
+PROJECT_DASHBOARD_SLUG = "industrial-bi-cockpit"
+PROJECT_DASHBOARD_LEGACY_SLUGS = {"industrial-bi-cockpit", "industrial-bi-cockpit-ru"}
+PROJECT_LOCALES = {
+    "en": {
+        "title": "Industrial BI Cockpit",
+        "description": "Production efficiency cockpit for the local video demo.",
+        "charts": {
+            "oee": "OEE",
+            "output": "Output",
+            "scrap_rate": "Scrap Rate",
+            "downtime_hours": "Downtime Hours",
+            "plan_vs_fact": "Plan vs Fact",
+            "downtime_by_reason": "Downtime By Reason",
+            "incident_details": "Incident Details",
+        },
+        "metrics": {
+            "total_output": "Total Output",
+            "planned_output": "Planned Output",
+            "scrap_rate": "Scrap Rate",
+            "downtime_hours": "Downtime Hours",
+        },
+    },
+    "ru": {
+        "title": "Производственный BI-кокпит",
+        "description": "Кокпит эффективности производства для локального демо.",
+        "charts": {
+            "oee": "OEE",
+            "output": "Выпуск",
+            "scrap_rate": "Доля брака",
+            "downtime_hours": "Часы простоя",
+            "plan_vs_fact": "План против факта",
+            "downtime_by_reason": "Простои по причинам",
+            "incident_details": "Детали инцидентов",
+        },
+        "metrics": {
+            "total_output": "Выпуск",
+            "planned_output": "План",
+            "scrap_rate": "Доля брака",
+            "downtime_hours": "Часы простоя",
+        },
+    },
+}
+PROJECT_DASHBOARD_TITLES = {locale["title"] for locale in PROJECT_LOCALES.values()}
+PROJECT_CHART_NAMES = {
+    chart_key: {locale["charts"][chart_key] for locale in PROJECT_LOCALES.values()}
+    for chart_key in PROJECT_LOCALES["en"]["charts"]
+}
 
 
 PRODUCTION_COLUMNS = [
@@ -126,23 +173,121 @@ def chart_params(dataset, viz_type, params):
     return json.dumps(base, sort_keys=True)
 
 
-def upsert_slice(name, dataset, viz_type, params, admin):
-    chart = db.session.query(Slice).filter(Slice.slice_name == name).one_or_none()
+def project_locale():
+    locale = os.getenv("SUPERSET_PROJECT_LOCALE") or os.getenv("SUPERSET_DEFAULT_LOCALE") or "en"
+    locale = locale.lower().replace("_", "-").split("-")[0]
+    if locale not in PROJECT_LOCALES:
+        locale = "en"
+    return locale
+
+
+def upsert_slice(chart_key, name, dataset, viz_type, params, admin):
+    marker = f"industrial-bi-cockpit:{chart_key}"
+    known_names = PROJECT_CHART_NAMES[chart_key]
+    candidates = (
+        db.session.query(Slice)
+        .filter(
+            (Slice.description == marker)
+            | ((Slice.certified_by == "Demo bootstrap") & Slice.slice_name.in_(known_names))
+        )
+        .order_by(Slice.id)
+        .all()
+    )
+    chart = next((candidate for candidate in candidates if candidate.slice_name == name), None)
+    if chart is None and candidates:
+        chart = candidates[0]
     if chart is None:
-        chart = Slice(slice_name=name)
+        chart = Slice()
         db.session.add(chart)
+    for stale_chart in candidates:
+        if stale_chart.id != chart.id:
+            db.session.delete(stale_chart)
+    chart.slice_name = name
     chart.datasource_id = dataset.id
     chart.datasource_type = "table"
     chart.datasource_name = dataset.table_name
     chart.viz_type = viz_type
     chart.params = chart_params(dataset, viz_type, params)
     chart.query_context = None
-    chart.description = "Auto-created for Industrial BI Cockpit video demo."
+    chart.description = marker
     chart.certified_by = "Demo bootstrap"
-    chart.certification_details = "Generated local demo chart."
+    chart.certification_details = "Generated local demo chart with project localization."
     chart.owners = [admin]
     db.session.flush()
     return chart
+
+
+def build_charts(config, production, downtime, admin):
+    chart_names = config["charts"]
+    metric_names = config["metrics"]
+    return [
+        upsert_slice("oee", chart_names["oee"], production, "big_number_total", {"metric": "OEE"}, admin),
+        upsert_slice(
+            "output",
+            chart_names["output"],
+            production,
+            "big_number_total",
+            {"metric": metric_names["total_output"]},
+            admin,
+        ),
+        upsert_slice(
+            "scrap_rate",
+            chart_names["scrap_rate"],
+            production,
+            "big_number_total",
+            {"metric": metric_names["scrap_rate"]},
+            admin,
+        ),
+        upsert_slice(
+            "downtime_hours",
+            chart_names["downtime_hours"],
+            downtime,
+            "big_number_total",
+            {"metric": metric_names["downtime_hours"]},
+            admin,
+        ),
+        upsert_slice(
+            "plan_vs_fact",
+            chart_names["plan_vs_fact"],
+            production,
+            "echarts_timeseries_line",
+            {
+                "granularity_sqla": "event_ts",
+                "metrics": [metric_names["planned_output"], metric_names["total_output"]],
+                "groupby": ["plant_name"],
+            },
+            admin,
+        ),
+        upsert_slice(
+            "downtime_by_reason",
+            chart_names["downtime_by_reason"],
+            downtime,
+            "dist_bar",
+            {"groupby": ["reason_category"], "metrics": [metric_names["downtime_hours"]], "columns": []},
+            admin,
+        ),
+        upsert_slice(
+            "incident_details",
+            chart_names["incident_details"],
+            downtime,
+            "table",
+            {
+                "all_columns": [
+                    "started_at",
+                    "ended_at",
+                    "plant_id",
+                    "line_id",
+                    "equipment_id",
+                    "reason_category",
+                    "reason_detail",
+                    "is_planned",
+                ],
+                "order_desc": True,
+                "page_length": 15,
+            },
+            admin,
+        ),
+    ]
 
 
 def dashboard_layout(charts):
@@ -210,6 +355,40 @@ def favorite_dashboard(admin, dashboard):
     )
 
 
+def upsert_dashboard(config, charts, admin):
+    dashboards = (
+        db.session.query(Dashboard)
+        .filter(
+            Dashboard.slug.in_(PROJECT_DASHBOARD_LEGACY_SLUGS)
+            | Dashboard.dashboard_title.in_(PROJECT_DASHBOARD_TITLES)
+        )
+        .order_by(Dashboard.id)
+        .all()
+    )
+    dashboard = next((item for item in dashboards if item.slug == PROJECT_DASHBOARD_SLUG), None)
+    if dashboard is None and dashboards:
+        dashboard = dashboards[0]
+    if dashboard is None:
+        dashboard = Dashboard()
+        db.session.add(dashboard)
+    for stale_dashboard in dashboards:
+        if stale_dashboard.id != dashboard.id:
+            stale_dashboard.slices = []
+            db.session.delete(stale_dashboard)
+    dashboard.dashboard_title = config["title"]
+    dashboard.slug = PROJECT_DASHBOARD_SLUG
+    dashboard.description = config["description"]
+    dashboard.published = True
+    dashboard.certified_by = "Demo bootstrap"
+    dashboard.certification_details = "Auto-created localized demo dashboard."
+    dashboard.owners = [admin]
+    dashboard.slices = charts
+    db.session.flush()
+    dashboard.position_json = dashboard_layout(charts)
+    favorite_dashboard(admin, dashboard)
+    return dashboard
+
+
 def main():
     global Dashboard, Database, Slice, SqlaTable, SqlMetric, TableColumn
 
@@ -230,8 +409,11 @@ def main():
         PRODUCTION_COLUMNS,
         [
             ("Total Output", "sum(actual_units)", ",.0f", "Produced units."),
+            ("Выпуск", "sum(actual_units)", ",.0f", "Произведенные единицы."),
             ("Planned Output", "sum(planned_units)", ",.0f", "Planned units."),
+            ("План", "sum(planned_units)", ",.0f", "Плановые единицы."),
             ("Scrap Rate", "sum(scrap_units)::numeric / nullif(sum(actual_units), 0)", ".1%", "Scrap share."),
+            ("Доля брака", "sum(scrap_units)::numeric / nullif(sum(actual_units), 0)", ".1%", "Доля брака."),
             (
                 "OEE",
                 "(sum(runtime_minutes)::numeric / nullif(count(*) * 60, 0))"
@@ -253,79 +435,23 @@ def main():
                 "sum(extract(epoch from ended_at - started_at)) / 3600",
                 ",.1f",
                 "Downtime duration in hours.",
+            ),
+            (
+                "Часы простоя",
+                "sum(extract(epoch from ended_at - started_at)) / 3600",
+                ",.1f",
+                "Длительность простоя в часах.",
             )
         ],
     )
 
-    charts = [
-        upsert_slice("OEE", production, "big_number_total", {"metric": "OEE"}, admin),
-        upsert_slice("Output", production, "big_number_total", {"metric": "Total Output"}, admin),
-        upsert_slice("Scrap Rate", production, "big_number_total", {"metric": "Scrap Rate"}, admin),
-        upsert_slice("Downtime Hours", downtime, "big_number_total", {"metric": "Downtime Hours"}, admin),
-        upsert_slice(
-            "Plan vs Fact",
-            production,
-            "echarts_timeseries_line",
-            {
-                "granularity_sqla": "event_ts",
-                "metrics": ["Planned Output", "Total Output"],
-                "groupby": ["plant_name"],
-            },
-            admin,
-        ),
-        upsert_slice(
-            "Downtime By Reason",
-            downtime,
-            "dist_bar",
-            {"groupby": ["reason_category"], "metrics": ["Downtime Hours"], "columns": []},
-            admin,
-        ),
-        upsert_slice(
-            "Incident Details",
-            downtime,
-            "table",
-            {
-                "all_columns": [
-                    "started_at",
-                    "ended_at",
-                    "plant_id",
-                    "line_id",
-                    "equipment_id",
-                    "reason_category",
-                    "reason_detail",
-                    "is_planned",
-                ],
-                "order_desc": True,
-                "page_length": 15,
-            },
-            admin,
-        ),
-    ]
-
-    dashboard = (
-        db.session.query(Dashboard)
-        .filter(Dashboard.dashboard_title == DASHBOARD_TITLE)
-        .one_or_none()
-    )
-    if dashboard is None:
-        dashboard = Dashboard(dashboard_title=DASHBOARD_TITLE)
-        db.session.add(dashboard)
-    dashboard.slug = "industrial-bi-cockpit"
-    dashboard.description = "Production efficiency cockpit for the local video demo."
-    dashboard.published = True
-    dashboard.certified_by = "Demo bootstrap"
-    dashboard.certification_details = "Auto-created demo dashboard."
-    dashboard.owners = [admin]
-    dashboard.slices = charts
-    db.session.flush()
-    dashboard.position_json = dashboard_layout(charts)
-    favorite_dashboard(admin, dashboard)
+    locale = project_locale()
+    config = PROJECT_LOCALES[locale]
+    charts = build_charts(config, production, downtime, admin)
+    dashboard = upsert_dashboard(config, charts, admin)
 
     db.session.commit()
-    print(
-        f"Demo dashboard ready: {dashboard.dashboard_title} "
-        f"({len(charts)} charts, dashboard_id={dashboard.id})."
-    )
+    print(f"Demo dashboard ready: {dashboard.dashboard_title}#{dashboard.id} ({locale}).")
 
 
 app = create_app()

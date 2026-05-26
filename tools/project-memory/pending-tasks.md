@@ -14,6 +14,34 @@ generated outputs, secrets, credentials, or private production data.
 
 ## Tasks
 
+### Superset RU/EN localization
+
+Goal: add Russian and English localization support to the local Superset demo.
+
+Planned changes:
+
+- [x] Enable Superset locale settings for English and Russian.
+- [x] Add localized dashboard/chart metadata for the seeded demo objects.
+- [x] Document the default locale setting and how to switch it.
+- [x] Run syntax/config checks.
+
+Verification:
+
+- [x] `python -m py_compile superset\superset_config.py superset\bootstrap\create-demo-dashboard.py`
+- [x] `docker compose config`
+- [x] Ran dashboard bootstrap in the running Superset container.
+- [x] Restarted Superset services and verified `http://127.0.0.1:8088/health`.
+- [x] Reworked seeded project localization to keep one stable dashboard slug
+      and sync project-created chart/dashboard names to the selected locale.
+- [x] Verified current metadata has one project dashboard:
+      `Производственный BI-кокпит` at slug `industrial-bi-cockpit`.
+- [x] Verified current Demo bootstrap charts are Russian-localized.
+- [x] Added image-build generation for Superset frontend `messages.json`
+      language packs from bundled `.po` files.
+- [x] Rebuilt `industrial-bi-superset:local` and verified the Russian pack
+      contains UI strings such as `Dashboards`, `Charts`, `Settings`, and
+      `Bulk select`.
+
 ### Demo mock data enrichment
 
 Goal: enrich the Industrial BI Cockpit demo with enough mock entities and fact

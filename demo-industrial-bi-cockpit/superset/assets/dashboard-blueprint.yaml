@@ -1,41 +1,60 @@
+localization:
+  supported_locales:
+    - en
+    - ru
+  project_locale_env: SUPERSET_PROJECT_LOCALE
+  fallback_locale_env: SUPERSET_DEFAULT_LOCALE
+  scope: seeded project dashboard, charts, filters, and metrics only
 dashboard:
   title: Industrial BI Cockpit
+  ru_title: Производственный BI-кокпит
   description: Production efficiency cockpit for industrial BI demo.
+  ru_description: Кокпит эффективности производства для industrial BI demo.
   dataset: v_production_hourly
   filters:
     - name: Date range
+      ru_name: Диапазон дат
       column: event_ts
       type: time_range
     - name: Plant
+      ru_name: Завод
       column: plant_name
       type: select
     - name: Line
+      ru_name: Линия
       column: line_name
       type: select
     - name: Shift
+      ru_name: Смена
       column: shift_name
       type: select
     - name: Product family
+      ru_name: Семейство продукта
       column: product_family
       type: select
   charts:
     - title: OEE
+      ru_title: OEE
       type: big_number
       dataset: v_production_hourly
       metric: OEE
     - title: Output
+      ru_title: Выпуск
       type: big_number
       dataset: v_production_hourly
       metric: Total Output
     - title: Downtime Hours
+      ru_title: Часы простоя
       type: big_number
       dataset: downtime_events
       metric: Downtime Hours
     - title: Scrap Rate
+      ru_title: Доля брака
       type: big_number
       dataset: v_production_hourly
       metric: Scrap Rate
     - title: Plan vs Fact
+      ru_title: План против факта
       type: time_series_line
       dataset: v_production_hourly
       time_column: event_ts
@@ -45,11 +64,13 @@ dashboard:
       group_by:
         - plant_name
     - title: Downtime By Reason
+      ru_title: Простои по причинам
       type: bar
       dataset: downtime_events
       dimension: reason_category
       metric: Downtime Hours
     - title: Line And Shift OEE
+      ru_title: OEE по линиям и сменам
       type: heatmap_or_pivot
       dataset: v_production_hourly
       rows:
@@ -58,6 +79,7 @@ dashboard:
         - shift_name
       metric: avg(oee)
     - title: Incident Details
+      ru_title: Детали инцидентов
       type: table
       dataset: downtime_events
       columns:

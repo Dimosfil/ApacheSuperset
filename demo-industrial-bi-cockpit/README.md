@@ -49,6 +49,17 @@ Login:
 admin / admin
 ```
 
+Localization:
+
+- the Superset UI exposes English and Russian;
+- default locale is controlled by `SUPERSET_DEFAULT_LOCALE` in `.env` (`en` or
+  `ru`);
+- project demo assets use `SUPERSET_PROJECT_LOCALE`; if it is not set, they use
+  `SUPERSET_DEFAULT_LOCALE`;
+- bootstrap keeps one stable project dashboard and rewrites its seeded titles,
+  charts, and metrics for the selected project locale. User-created content is
+  left exactly as users entered it.
+
 The database seed is intentionally dense enough for screen recording: 5 plants,
 15 production lines, 60 equipment assets, 180 days of hourly production events,
 downtime, quality checks, and maintenance orders.
