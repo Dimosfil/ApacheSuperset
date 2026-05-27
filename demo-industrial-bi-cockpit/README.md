@@ -40,8 +40,13 @@ docker compose up
 Then open:
 
 ```text
-http://localhost:8088
+http://217.25.238.103:8088
 ```
+
+The Docker service still binds on the host LAN address configured with
+`SUPERSET_BIND_HOST`, for example `192.168.3.55`. For a local-only run, set
+`SUPERSET_BIND_HOST=0.0.0.0` and `SUPERSET_PUBLIC_HOST=localhost` in `.env`,
+then open `http://localhost:8088`.
 
 Login:
 

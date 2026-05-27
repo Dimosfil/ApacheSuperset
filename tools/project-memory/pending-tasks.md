@@ -199,3 +199,19 @@ Risks or dependencies:
 Verification:
 
 - [x] List created files and spot-check key content.
+
+### Static external Superset address
+
+Goal: make the demo stack bind Superset to the LAN/static host address
+`192.168.3.55:8088` for external router port forwarding.
+
+Planned changes:
+
+- [x] Add explicit external host/port environment defaults.
+- [x] Bind the Superset Compose port mapping to the configured host address.
+- [x] Configure Superset external base URLs and proxy handling.
+- [x] Document the LAN URL in the quick start.
+
+Verification:
+
+- [x] Validate the Docker Compose configuration.
