@@ -262,8 +262,15 @@ def build_charts(config, production, downtime, admin):
             "downtime_by_reason",
             chart_names["downtime_by_reason"],
             downtime,
-            "dist_bar",
-            {"groupby": ["reason_category"], "metrics": [metric_names["downtime_hours"]], "columns": []},
+            "echarts_timeseries_bar",
+            {
+                "x_axis": "reason_category",
+                "metrics": [metric_names["downtime_hours"]],
+                "groupby": [],
+                "columns": [],
+                "sort_by_metric": True,
+                "order_desc": True,
+            },
             admin,
         ),
         upsert_slice(

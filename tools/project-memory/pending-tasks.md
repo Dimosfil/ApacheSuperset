@@ -14,6 +14,16 @@ generated outputs, secrets, credentials, or private production data.
 
 ## Tasks
 
+### Fix Superset downtime chart viz type 2026.05.27
+
+Goal: fix the dashboard data error caused by unregistered `dist_bar` chart type.
+
+Planned changes:
+
+- [x] Replace legacy `dist_bar` seeded chart metadata with a registered Superset chart type.
+- [x] Re-run the Superset dashboard bootstrap against the running stack.
+- [x] Verify the chart metadata and Superset health/API response.
+
 ### Instruction kit update 2026.05.27.1
 
 Goal: apply the GI config-service/task-manager discovery migration.
