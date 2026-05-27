@@ -14,6 +14,18 @@ generated outputs, secrets, credentials, or private production data.
 
 ## Tasks
 
+### Instruction kit update 2026.05.27.1
+
+Goal: apply the GI config-service/task-manager discovery migration.
+
+Planned changes:
+
+- [x] Update local instructions for config-service aliases and task-manager
+      service discovery.
+- [x] Add project task-manager config without runtime URLs.
+- [x] Record the applied instruction-kit migration.
+- [x] Verify update status and git state.
+
 ### Superset RU/EN localization
 
 Goal: add Russian and English localization support to the local Superset demo.

@@ -124,13 +124,23 @@ Inspect logs:
   or arbitrary external folder unless the user gives an explicit concrete path
   and action. Use APIs, connectors, or task-manager endpoints for cross-project
   communication.
-- Treat `gi config`, `gi конфиг`, and `ги конфиг` as requests to get the
-  bootstrap config for the config/discovery service. Read a project-local
-  override only if local instructions define one, then read GI main config from
-  `D:\AI\general-instructions\config\gi-main.json` or
+- Treat `gi config`, `gi config service`, `gi конфиг`, and `ги конфиг` as
+  requests to get the bootstrap config for the config/discovery service. Read a
+  project-local override only if local instructions define one, then read GI
+  main config from `D:\AI\general-instructions\config\gi-main.json` or
   `GENERAL_INSTRUCTIONS_HOME`. Use its `configServiceUrl` to query the config
   service. Do not scan sibling project folders, guess ports, or use stale
   task-manager memory as a runtime fallback.
+- Treat `gi config service url=<url>` as the canonical way to declare the
+  config-service URL for the current environment. Validate before saving:
+  require a full `http://` or `https://` URL and reject secrets, tokens,
+  usernames, passwords, query strings, and fragments.
+- For task-manager workflows, store only the enabled manager id, `service_id`,
+  and non-secret project preferences in project memory. Resolve runtime details
+  through config-service with `GET /services/{serviceId}`, check
+  `endpoints.availability`, read `endpoints.contract`, and use `endpoints.api`
+  for manager operations. Stop with a concise blocker if the manager id is
+  missing or config-service has no matching service record.
 - Treat nested checkouts, vendored repositories, cloned examples, and
   third-party source trees as separate scope. Do not inspect them as part of the
   main project unless the user explicitly asks, the task is about that nested
