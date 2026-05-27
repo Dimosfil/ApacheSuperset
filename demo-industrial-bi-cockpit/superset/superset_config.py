@@ -1,5 +1,6 @@
 import os
 import sys
+import json
 import importlib.util
 from pathlib import Path
 
@@ -82,7 +83,7 @@ AI_CHART_ASSISTANT_DIR = Path(os.getenv("AI_CHART_ASSISTANT_DIR", "/app/ai-chart
 
 
 def FLASK_APP_MUTATOR(app):
-    from flask import Blueprint, Response, jsonify, request, send_from_directory
+    from flask import Blueprint, Response, g, jsonify, request, send_from_directory
 
     assistant_path = str(AI_CHART_ASSISTANT_DIR)
     if assistant_path not in sys.path:
@@ -104,17 +105,10 @@ def FLASK_APP_MUTATOR(app):
     @blueprint.get("/")
     def assistant_index():
         prompt = str(request.args.get("prompt", "")).strip()
-        draft = None
-        error = ""
-        if prompt:
-            try:
-                draft = generate_chart_draft(prompt)
-            except Exception as exc:
-                error = str(exc)
         nonce_func = app.jinja_env.globals.get("csp_nonce")
         csp_nonce = nonce_func() if nonce_func else ""
         response = Response(
-            render_index(prompt=prompt, draft=draft, error=error, csp_nonce=csp_nonce),
+            render_index(prompt=prompt, csp_nonce=csp_nonce),
             mimetype="text/html",
         )
         response.headers["Cache-Control"] = "no-store, max-age=0"
@@ -148,6 +142,62 @@ def FLASK_APP_MUTATOR(app):
     def assistant_text_to_chart():
         payload = request.get_json(silent=True) or {}
         return _chart_response_from_prompt(payload.get("prompt", ""))
+
+    @blueprint.post("/api/create-chart")
+    def assistant_create_chart():
+        from superset import db
+        from superset.connectors.sqla.models import SqlaTable
+        from superset.models.slice import Slice
+
+        payload = request.get_json(silent=True) or {}
+        draft = payload.get("draft") or {}
+        prompt = str(payload.get("prompt") or draft.get("prompt") or "").strip()
+        if not draft:
+            if not prompt:
+                return jsonify({"error": "prompt or draft is required"}), 400
+            draft = generate_chart_draft(prompt)
+
+        dataset_name = str(draft.get("dataset") or "").strip()
+        if dataset_name not in DATASETS:
+            return jsonify({"error": f"unknown dataset: {dataset_name}"}), 400
+
+        table = db.session.query(SqlaTable).filter_by(table_name=dataset_name).first()
+        if not table:
+            return jsonify({"error": f"dataset is not registered in Superset: {dataset_name}"}), 404
+
+        params = dict(draft.get("superset_params") or {})
+        params["datasource"] = f"{table.id}__table"
+        params["slice_id"] = None
+        viz_type = str(draft.get("viz_type") or params.get("viz_type") or "").strip()
+        if not viz_type:
+            return jsonify({"error": "draft is missing viz_type"}), 400
+        params["viz_type"] = viz_type
+
+        title = str(draft.get("title") or "AI chart draft").strip()[:250]
+        chart = Slice(
+            slice_name=title,
+            viz_type=viz_type,
+            datasource_id=table.id,
+            datasource_type="table",
+            params=json.dumps(params, ensure_ascii=False, sort_keys=True),
+            description=str(draft.get("explanation") or ""),
+        )
+        user = getattr(g, "user", None)
+        if user is not None and getattr(user, "is_authenticated", False):
+            chart.owners = [user]
+
+        db.session.add(chart)
+        db.session.commit()
+
+        explore_url = f"/superset/explore/table/{table.id}/?slice_id={chart.id}"
+        return jsonify(
+            {
+                "id": chart.id,
+                "url": explore_url,
+                "list_url": "/chart/list/",
+                "slice_name": chart.slice_name,
+            }
+        )
 
     csrf = app.extensions.get("csrf")
     if csrf:

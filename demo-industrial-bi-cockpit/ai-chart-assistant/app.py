@@ -67,14 +67,7 @@ class Handler(BaseHTTPRequestHandler):
         if parsed.path in ("/", "/index.html"):
             query = urllib.parse.parse_qs(parsed.query)
             prompt = str(query.get("prompt", [""])[0]).strip()
-            draft = None
-            error = ""
-            if prompt:
-                try:
-                    draft = generate_chart_draft(prompt)
-                except Exception as exc:
-                    error = str(exc)
-            body = render_index(prompt=prompt, draft=draft, error=error).encode("utf-8")
+            body = render_index(prompt=prompt).encode("utf-8")
             self.send_response(200)
             self.send_header("Content-Type", "text/html; charset=utf-8")
             self.send_header("Cache-Control", "no-store, max-age=0")
@@ -110,6 +103,18 @@ class Handler(BaseHTTPRequestHandler):
             )
 
     def do_POST(self):
+        if self.path == "/api/create-chart":
+            self._send_json(
+                501,
+                {
+                    "error": (
+                        "Chart creation is available only when the assistant is "
+                        "mounted inside Superset at /ai-chart-assistant/."
+                    )
+                },
+            )
+            return
+
         if self.path != "/api/text-to-chart":
             self._send_json(404, {"error": "not_found"})
             return

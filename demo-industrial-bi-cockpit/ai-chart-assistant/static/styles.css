@@ -158,6 +158,11 @@ button,
   font-weight: 700;
 }
 
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+
 .actions button {
   padding: 0 16px;
 }

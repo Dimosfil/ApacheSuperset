@@ -5,3 +5,4 @@ tools/project-memory/*.db
 tools/project-memory/*.db-*
 tools/summary/*.tmp
 *.log
+tools/bin/

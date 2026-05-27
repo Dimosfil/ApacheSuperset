@@ -5,6 +5,7 @@ import sys
 import threading
 import time
 import unittest
+import urllib.error
 import urllib.parse
 import urllib.request
 from pathlib import Path
@@ -45,6 +46,9 @@ class TextToChartUiTest(unittest.TestCase):
         self.assertIn('action="/ai-chart-assistant/"', html)
         self.assertIn("<script", html)
         self.assertIn("Генерация...", html)
+        self.assertIn('id="create-chart-button"', html)
+        self.assertIn('id="chart-list-link"', html)
+        self.assertIn("/api/create-chart", html)
         self.assertIn("Show downtime by reason for the last 30 days", html)
         self.assertIn("downtime_events", html)
         self.assertIn("Downtime Hours", html)
@@ -82,15 +86,16 @@ class StandaloneHttpFlowTest(unittest.TestCase):
         if cls.previous_key is not None:
             os.environ["DEEPSEEK_API_KEY"] = cls.previous_key
 
-    def test_get_prompt_route_returns_rendered_chart_draft_html(self):
+    def test_get_prompt_route_returns_shell_without_blocking_on_generation(self):
         query = urllib.parse.urlencode({"prompt": "Show downtime by reason for the last 30 days"})
         with urllib.request.urlopen(f"{self.base_url}/?{query}", timeout=10) as response:
             html = response.read().decode("utf-8")
 
         self.assertEqual(response.status, 200)
-        self.assertIn("downtime_events", html)
-        self.assertIn("Downtime Hours", html)
-        self.assertIn("echarts_timeseries_bar", html)
+        self.assertIn("Show downtime by reason for the last 30 days", html)
+        self.assertIn("/api/text-to-chart", html)
+        self.assertIn("fetch(`${routeBase}/api/text-to-chart`", html)
+        self.assertNotIn("downtime_events", html)
 
     def test_post_api_still_returns_json_draft(self):
         body = json.dumps({"prompt": "Show downtime by reason for the last 30 days"}).encode("utf-8")
@@ -117,6 +122,22 @@ class StandaloneHttpFlowTest(unittest.TestCase):
         self.assertEqual(response.status, 200)
         self.assertEqual(payload["dataset"], "downtime_events")
         self.assertEqual(payload["metric"], "Downtime Hours")
+
+    def test_standalone_create_chart_route_explains_mount_requirement(self):
+        request = urllib.request.Request(
+            f"{self.base_url}/api/create-chart",
+            data=json.dumps({"prompt": "Show downtime by reason"}).encode("utf-8"),
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+
+        with self.assertRaises(urllib.error.HTTPError) as context:
+            urllib.request.urlopen(request, timeout=10)
+
+        payload = json.loads(context.exception.read().decode("utf-8"))
+        context.exception.close()
+        self.assertEqual(context.exception.code, 501)
+        self.assertIn("mounted inside Superset", payload["error"])
 
 
 def _free_port():

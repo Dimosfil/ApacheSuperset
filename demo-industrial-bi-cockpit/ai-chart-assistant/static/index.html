@@ -35,6 +35,15 @@
               <span class="button-label">Сгенерировать</span>
             </button>
             <a class="action-link" href="{{ api_url }}" target="_blank" rel="noreferrer">Открыть JSON</a>
+            <button type="button" id="create-chart-button" class="secondary-action" disabled>
+              Создать в Superset
+            </button>
+            <a id="created-chart-link" class="action-link" href="#" target="_blank" rel="noreferrer" hidden>
+              Открыть чарт
+            </a>
+            <a id="chart-list-link" class="action-link" href="/chart/list/" target="_blank" rel="noreferrer" hidden>
+              Список чартов
+            </a>
           </div>
         </form>
 
@@ -127,6 +136,202 @@
           setLoading("Открываю пример...");
         });
       });
+    </script>
+    <script{{ csp_nonce_attr }}>
+      (() => {
+        const routeBase = window.location.pathname.startsWith("/ai-chart-assistant")
+          ? "/ai-chart-assistant"
+          : "";
+        const form = document.querySelector("#prompt-form");
+        const button = document.querySelector("#generate-button");
+        const label = button?.querySelector(".button-label");
+        const promptInput = document.querySelector("#prompt");
+        const apiLink = document.querySelector(".action-link");
+        const createChartButton = document.querySelector("#create-chart-button");
+        const createdChartLink = document.querySelector("#created-chart-link");
+        const chartListLink = document.querySelector("#chart-list-link");
+        const provider = document.querySelector("#provider");
+        const confidence = document.querySelector("#confidence");
+        const params = document.querySelector("#params");
+        const defaultLabel = label?.textContent || button?.textContent || "";
+        const loadingLabel = "\u0413\u0435\u043d\u0435\u0440\u0430\u0446\u0438\u044f...";
+        const createDefaultLabel = createChartButton?.textContent || "";
+        let activeRequestId = 0;
+        let currentDraft = null;
+
+        const fields = {
+          title: document.querySelector("#draft-title"),
+          dataset: document.querySelector("#dataset"),
+          chartType: document.querySelector("#chart-type"),
+          metric: document.querySelector("#metric"),
+          dimension: document.querySelector("#dimension"),
+          timeRange: document.querySelector("#time-range"),
+          explanation: document.querySelector("#explanation"),
+        };
+
+        function setButtonLabel(text) {
+          if (label) {
+            label.textContent = text;
+          } else if (button) {
+            button.textContent = text;
+          }
+        }
+
+        function setLoading(isLoading) {
+          document.body.classList.toggle("is-loading", isLoading);
+          if (button) {
+            button.disabled = isLoading;
+            button.setAttribute("aria-busy", String(isLoading));
+          }
+          setButtonLabel(isLoading ? loadingLabel : defaultLabel);
+        }
+
+        function setStatus(text, isWarning = false) {
+          if (!provider) {
+            return;
+          }
+          provider.textContent = text;
+          provider.classList.toggle("warning", isWarning);
+        }
+
+        function setJsonLink(prompt) {
+          if (!apiLink) {
+            return;
+          }
+          const encodedPrompt = encodeURIComponent(prompt);
+          apiLink.href = encodedPrompt
+            ? `${routeBase}/api/text-to-chart?prompt=${encodedPrompt}`
+            : `${routeBase}/api/text-to-chart`;
+        }
+
+        function renderDraft(draft) {
+          const supersetParams = draft.superset_params || {};
+          currentDraft = draft;
+          fields.title.textContent = draft.title || "Draft preview";
+          fields.dataset.textContent = draft.dataset || "-";
+          fields.chartType.textContent = draft.viz_type || draft.chart_type || "-";
+          fields.metric.textContent = draft.metric || "-";
+          fields.dimension.textContent = draft.dimension || "-";
+          fields.timeRange.textContent = draft.time_range || "-";
+          fields.explanation.textContent = draft.explanation || "";
+          confidence.textContent = draft.confidence
+            ? `\u0423\u0432\u0435\u0440\u0435\u043d\u043d\u043e\u0441\u0442\u044c ${Math.round(draft.confidence * 100)}%`
+            : "";
+          params.textContent = JSON.stringify(supersetParams, null, 2);
+          setStatus(
+            draft.fallback_used ? "Fallback rules" : draft.provider || "Ready",
+            Boolean(draft.fallback_used),
+          );
+          if (createChartButton) {
+            createChartButton.disabled = false;
+            createChartButton.textContent = createDefaultLabel;
+          }
+          if (createdChartLink) {
+            createdChartLink.hidden = true;
+            createdChartLink.href = "#";
+          }
+          if (chartListLink) {
+            chartListLink.hidden = true;
+          }
+        }
+
+        async function generateDraft(prompt) {
+          const requestId = ++activeRequestId;
+          setJsonLink(prompt);
+          setLoading(true);
+          try {
+            const response = await fetch(`${routeBase}/api/text-to-chart`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ prompt }),
+            });
+            const payload = await response.json();
+            if (!response.ok) {
+              throw new Error(payload.error || "Request failed");
+            }
+            if (requestId === activeRequestId) {
+              renderDraft(payload);
+            }
+          } catch (error) {
+            if (requestId === activeRequestId) {
+              currentDraft = null;
+              setStatus("Error", true);
+              fields.explanation.textContent = error.message;
+              if (createChartButton) {
+                createChartButton.disabled = true;
+                createChartButton.textContent = createDefaultLabel;
+              }
+            }
+          } finally {
+            if (requestId === activeRequestId) {
+              setLoading(false);
+            }
+          }
+        }
+
+        form?.addEventListener("submit", (event) => {
+          event.preventDefault();
+          const prompt = promptInput.value.trim();
+          if (!prompt) {
+            promptInput.focus();
+            return;
+          }
+          generateDraft(prompt);
+        });
+
+        createChartButton?.addEventListener("click", async () => {
+          if (!currentDraft) {
+            return;
+          }
+          createChartButton.disabled = true;
+          createChartButton.textContent = "\u0421\u043e\u0437\u0434\u0430\u044e...";
+          try {
+            const response = await fetch(`${routeBase}/api/create-chart`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ prompt: promptInput.value.trim(), draft: currentDraft }),
+            });
+            const payload = await response.json();
+            if (!response.ok) {
+              throw new Error(payload.error || "Chart creation failed");
+            }
+            if (createdChartLink) {
+              createdChartLink.href = payload.url;
+              createdChartLink.hidden = false;
+              createdChartLink.focus();
+            }
+            if (chartListLink) {
+              chartListLink.href = payload.list_url || "/chart/list/";
+              chartListLink.hidden = false;
+            }
+            setStatus("Created in Superset");
+          } catch (error) {
+            setStatus("Error", true);
+            fields.explanation.textContent = error.message;
+          } finally {
+            createChartButton.textContent = createDefaultLabel;
+            createChartButton.disabled = false;
+          }
+        });
+
+        window.addEventListener("pageshow", (event) => {
+          if (!event.persisted) {
+            return;
+          }
+          activeRequestId += 1;
+          setLoading(false);
+          document.querySelectorAll(".is-loading-link").forEach((link) => {
+            link.classList.remove("is-loading-link");
+          });
+        });
+
+        setLoading(false);
+        const initialPrompt = promptInput?.value.trim();
+        if (initialPrompt) {
+          setJsonLink(initialPrompt);
+          generateDraft(initialPrompt);
+        }
+      })();
     </script>
   </body>
 </html>

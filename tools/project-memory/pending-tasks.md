@@ -14,6 +14,47 @@ generated outputs, secrets, credentials, or private production data.
 
 ## Tasks
 
+### Fix AI chart assistant chart creation flow 2026.05.27
+
+Goal: avoid the failed manual Superset JSON import from `/ai-chart-assistant/`
+by letting the mounted assistant create a chart draft inside Superset.
+
+Planned changes:
+
+- [x] Add a Superset-mounted API endpoint that creates a Slice from an assistant draft.
+- [x] Add a UI action that calls the endpoint and opens the created chart.
+- [x] Run focused regression and syntax checks, then restart/verify Superset.
+
+Verification:
+
+- [x] `python -m unittest discover -s .\demo-industrial-bi-cockpit\ai-chart-assistant\tests -v`
+- [x] Syntax parsed in the Superset container without writing `.pyc`.
+- [x] Restarted Superset and verified `/ai-chart-assistant/` renders the create action.
+- [x] Created chart id 14 through `/ai-chart-assistant/api/create-chart`.
+- [x] After a blank external Explore screen, changed created chart links to
+      `/superset/explore/table/<dataset_id>/?slice_id=<chart_id>` and added a
+      `/chart/list/` fallback link; verified chart id 16 returns the new URL.
+- [x] Added a mounted no-op `/static/service-worker.js` to remove the missing
+      service-worker console error; verified local and tunnel static assets
+      return 200 after recreating Superset.
+
+### Fix AI chart assistant refresh hang 2026.05.27
+
+Goal: find and fix the long reload/request delay and broken generate button
+state after repeated refreshes on `/ai-chart-assistant/`.
+
+Planned changes:
+
+- [x] Inspect assistant route and client-side submit/reload logic.
+- [x] Apply the smallest scoped fix for stale/slow loading state.
+- [x] Run focused syntax/regression checks.
+
+Verification:
+
+- [x] `python -m unittest discover -s .\demo-industrial-bi-cockpit\ai-chart-assistant\tests -v`
+- [x] `python -m compileall -q demo-industrial-bi-cockpit\superset\superset_config.py demo-industrial-bi-cockpit\ai-chart-assistant`
+- [x] Restarted Superset and checked local/public assistant GET routes return 200 quickly.
+
 ### Add DeepSeek text-to-chart PoC 2026.05.27
 
 Goal: add a small AI-assisted text-to-chart draft service for the Superset demo.

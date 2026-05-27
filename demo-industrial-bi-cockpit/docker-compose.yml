@@ -70,6 +70,7 @@ services:
       - "${SUPERSET_BIND_HOST:-0.0.0.0}:${SUPERSET_PORT:-8088}:8088"
     volumes:
       - ./superset/superset_config.py:/app/pythonpath/superset_config.py:ro
+      - ./superset/static/service-worker.js:/app/superset/static/service-worker.js:ro
       - ./superset/bootstrap:/app/bootstrap:ro
       - ./superset/assets:/app/assets:ro
       - ./ai-chart-assistant:/app/ai-chart-assistant:ro
