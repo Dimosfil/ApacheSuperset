@@ -90,13 +90,20 @@ or:
 
 - Follow `tools/project-memory/system-preferences.json` for the agent's
   user-facing working language in this project.
-- Apply the configured system language to progress updates, final answers,
-  clarifying questions, and user-facing explanations.
-- Do not apply the system language to code, commands, logs, quoted text, or a
-  response language the user explicitly requested for a specific message.
+- Apply the configured project working-environment language order to plans,
+  checklists, progress updates, final answers, clarifying questions, and
+  user-facing explanations.
+- Apply the configured task language order to agent-created task titles, task
+  descriptions, and task-manager updates.
+- Do not apply the configured language order to existing task text, code,
+  commands, logs, quoted text, or a response language the user explicitly
+  requested for a specific message.
 - Treat `gi system language`, `gi систем язык`, and `ги систем язык` as
   requests to configure this preference.
-- Keep this setting separate from commit-message languages. `gi commit
+- The unified `gi language` command configures project working-environment,
+  commit-message, and task languages together, while separate legacy commands
+  remain available for compatibility.
+- Keep this setting distinct from commit-message languages. `gi commit
   language`, `gi коммит язык`, `ги коммит язык`, and older `gi язык коммита`
   forms configure `tools/project-memory/git-preferences.json`, not the agent's
   working language.
@@ -175,6 +182,22 @@ or:
   test commands and produce a compact verification plan for the current feature,
   bug fix, or release check. Plan first; run checks only when the user asks or
   when the current task already requires verification.
+- Treat `gi language`, `gi язык`, `ги язык`, `gi project language`,
+  `gi проект язык`, `ги проект язык`, `gi язык проекта`, and
+  `ги язык проекта` as the unified project-language command family. It updates
+  both `tools/project-memory/system-preferences.json` and
+  `tools/project-memory/git-preferences.json`.
+- If the unified project-language command is sent without explicit languages,
+  ask in three sequential chat steps: project working environment languages,
+  commit-message languages, and task languages. At each step, show the same
+  concise numbered Markdown checklist of available languages, with the current
+  selection checked, and tell the user they may answer with numbers or language
+  names in priority order.
+- If the user replies with only numbers, such as `1 2`, map the numbers to the
+  most recent checklist and preserve that order for the current step. Do not ask
+  what the numbers mean when the numbered checklist was just shown.
+- Keep direct inline forms such as `gi язык: 2 1` working as a single selection
+  applied to all three surfaces unless separate values are supplied.
 - Treat a first message that points to a shared instruction library as an
   instruction bootstrap, not as a request to add that library as a dependency.
 - If the user asks to update from a shared instruction library and this project
@@ -218,6 +241,13 @@ or:
 - Recommendations should explain the observed problem, reusable rule or
   workflow, evidence paths, affected files or commands, risks, and privacy
   review.
+- Treat recommendation source projects and owners as provenance only. Reading a
+  recommendation in the shared instruction library's `updates/` folder is
+  allowed during `general-instructions` maintenance, but evidence paths, project
+  names, task-manager notes, product plans, or owner labels in a recommendation
+  are not permission to read, search, edit, or inspect the source project. Ask
+  the user or that project's owner for an explicit concrete path and action
+  before crossing the repository boundary.
 - Capture reusable workflows, failure patterns, token-saving tactics, and
   agent-instruction improvements that could improve `gi` for other projects.
 - Do not add a shared instruction library as a project dependency, package,

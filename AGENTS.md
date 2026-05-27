@@ -152,6 +152,12 @@ Inspect logs:
   prefer mock or sample data, or ask for permission to inspect a specific file.
 - Treat product plans, `apps.txt`, summaries, and task-manager notes as intent
   signals only. They are not permission to read private local data sources.
+- Treat recommendation source projects and owners in shared instruction update
+  intake as provenance only. Evidence paths, project names, task-manager notes,
+  product plans, or owner labels in a recommendation are not permission to read,
+  search, edit, or inspect that source project. Ask the user or that project's
+  owner for an explicit concrete path and action before crossing the repository
+  boundary.
 - If a required file, skill, config, script, endpoint, task, or other entity is
   missing or not found, first reread the relevant local instructions, runbook,
   project memory, and accepted instruction-kit artifacts for the current scope.
@@ -197,16 +203,35 @@ Inspect logs:
   `fix`, `почини`, or `gi почини`.
 - Keep commit-message language preferences separate from the agent's
   user-facing working language.
+- Treat `gi language`, `gi язык`, `ги язык`, `gi project language`,
+  `gi проект язык`, `ги проект язык`, `gi язык проекта`, and
+  `ги язык проекта` as requests to configure unified project language order for
+  the project working environment, commit messages, and tasks. The command
+  updates both `tools/project-memory/system-preferences.json` and
+  `tools/project-memory/git-preferences.json`.
+- If a unified project-language command is sent without explicit languages, ask
+  in three sequential chat steps: project working environment languages,
+  commit-message languages, and task languages. At each step, show the same
+  concise numbered Markdown checklist of available languages with the current
+  selection checked, and tell the user they may answer with numbers or language
+  names in priority order.
+- If the user replies with only numbers, such as `1 2`, map the numbers to the
+  most recent language checklist and preserve that order for the current step.
+  Do not ask what the numbers mean when the numbered checklist was just shown.
+- Keep direct inline forms such as `gi язык: 2 1` working as a single selection
+  applied to all three language surfaces unless separate values are supplied.
 - Treat `gi commit language`, `gi коммит язык`, `ги коммит язык`, and older
   `gi язык коммита` forms as requests to configure commit-message languages in
   `tools/project-memory/git-preferences.json`.
 - Treat `gi system language`, `gi систем язык`, and `ги систем язык` as
   requests to configure the agent's project working language in
   `tools/project-memory/system-preferences.json`.
-- Follow `tools/project-memory/system-preferences.json` for progress updates,
-  final answers, clarifying questions, and user-facing explanations. Do not use
-  it to rewrite code, commands, logs, quoted text, or a response language the
-  user explicitly requested for a specific message.
+- Follow `tools/project-memory/system-preferences.json` for plans, checklists,
+  progress updates, final answers, clarifying questions, and user-facing
+  explanations. Apply the configured task language order to agent-created task
+  titles, task descriptions, and task-manager updates. Do not use it to rewrite
+  existing task text, code, commands, logs, quoted text, or a response language
+  the user explicitly requested for a specific message.
 - Launch applications in the background so focus does not jump away from the
   user's current window.
 - After implementing a frontend, backend, API, or full-stack feature, restart
