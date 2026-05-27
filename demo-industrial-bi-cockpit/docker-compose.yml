@@ -71,6 +71,7 @@ services:
     volumes:
       - ./superset/superset_config.py:/app/pythonpath/superset_config.py:ro
       - ./superset/static/service-worker.js:/app/superset/static/service-worker.js:ro
+      - ./superset/static/industrial-bi-shell.css:/app/superset/static/industrial-bi-shell.css:ro
       - ./superset/bootstrap:/app/bootstrap:ro
       - ./superset/assets:/app/assets:ro
       - ./ai-chart-assistant:/app/ai-chart-assistant:ro

@@ -203,4 +203,29 @@ def FLASK_APP_MUTATOR(app):
     if csrf:
         csrf.exempt(blueprint)
     app.register_blueprint(blueprint)
+
+    @app.after_request
+    def add_industrial_shell_styles(response):
+        content_type = response.headers.get("Content-Type", "")
+        if response.direct_passthrough or "text/html" not in content_type:
+            return response
+
+        stylesheet = "/static/industrial-bi-shell.css?v=20260527"
+        try:
+            html = response.get_data(as_text=True)
+        except RuntimeError:
+            return response
+        if stylesheet in html:
+            return response
+
+        head_end = html.lower().find("</head>")
+        if head_end == -1:
+            return response
+
+        link_tag = f'<link rel="stylesheet" href="{stylesheet}">'
+        html = f"{html[:head_end]}{link_tag}{html[head_end:]}"
+        response.set_data(html)
+        response.headers["Content-Length"] = str(len(response.get_data()))
+        return response
+
     return app

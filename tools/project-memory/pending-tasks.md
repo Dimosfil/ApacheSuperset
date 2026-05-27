@@ -14,6 +14,23 @@ generated outputs, secrets, credentials, or private production data.
 
 ## Tasks
 
+### Fix Superset home left-edge clipping 2026.05.27
+
+Goal: restore safe left spacing on the Superset shell/home page so labels and
+section toggles are not clipped against the viewport edge.
+
+Planned changes:
+
+- [x] Add a small Superset static CSS override and load it from the Flask app mutator.
+- [x] Run focused syntax/config checks and note restart needs.
+
+Verification:
+
+- [x] `python -m py_compile .\demo-industrial-bi-cockpit\superset\superset_config.py`
+- [x] `docker compose config --quiet`
+- [x] Recreated the Superset service and verified `/health`, the static CSS,
+      and HTML stylesheet injection on `http://192.168.3.55:8088/`.
+
 ### Fix AI chart assistant chart creation flow 2026.05.27
 
 Goal: avoid the failed manual Superset JSON import from `/ai-chart-assistant/`

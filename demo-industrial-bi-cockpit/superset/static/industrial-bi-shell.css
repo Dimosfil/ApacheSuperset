@@ -1,0 +1,20 @@
+:root {
+  --industrial-shell-safe-left: max(12px, env(safe-area-inset-left));
+}
+
+body {
+  overflow-x: hidden;
+}
+
+#app {
+  box-sizing: border-box;
+  padding-left: var(--industrial-shell-safe-left);
+  width: 100%;
+}
+
+#app .navbar,
+#app header,
+#app main,
+#app [role="main"] {
+  box-sizing: border-box;
+}
