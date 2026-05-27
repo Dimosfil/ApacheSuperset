@@ -14,6 +14,76 @@ generated outputs, secrets, credentials, or private production data.
 
 ## Tasks
 
+### Add DeepSeek text-to-chart PoC 2026.05.27
+
+Goal: add a small AI-assisted text-to-chart draft service for the Superset demo.
+
+Planned changes:
+
+- [x] Add a catalog-based chart draft generator with rule fallback.
+- [x] Add optional DeepSeek Chat API integration through environment variables.
+- [x] Add a small HTTP endpoint and demo documentation.
+- [x] Run syntax and smoke checks without exposing secrets.
+
+Verification:
+
+- [x] `python -m py_compile ai-chart-assistant\*.py`
+- [x] `docker compose config` checked after removing secret passthrough from
+      the service config.
+- [x] Rule fallback returned a Superset draft for a downtime prompt.
+- [x] Live DeepSeek call returned a Superset draft for English and UTF-8 Russian
+      downtime prompts.
+- [x] Local HTTP endpoint returned a DeepSeek-backed draft at
+      `http://127.0.0.1:8099/api/text-to-chart`.
+
+Follow-up: add a simple browser UI.
+
+- [x] Serve a first-page web UI from the assistant service.
+- [x] Wire prompt submission to `POST /api/text-to-chart`.
+- [x] Restart the local assistant service and smoke-check UI/API.
+
+Follow-up: mount assistant into the main Superset site.
+
+- [x] Add a Superset Flask route at `/ai-chart-assistant/`.
+- [x] Mount assistant files into the Superset container.
+- [x] Keep the standalone assistant as an optional Compose profile.
+- [x] Restart Superset and verify the public-path route.
+
+Verification:
+
+- [x] `python -m py_compile superset\superset_config.py ai-chart-assistant\*.py`
+- [x] `docker compose config --quiet`
+- [x] Local unified route returned the UI:
+      `http://192.168.3.55:8088/ai-chart-assistant/`
+- [x] Local unified POST route returned a DeepSeek draft:
+      `http://192.168.3.55:8088/ai-chart-assistant/api/text-to-chart`
+- [x] External unified route returned the UI:
+      `https://small-webs-jog.loca.lt/ai-chart-assistant/`
+- [x] External unified POST route returned a DeepSeek draft:
+      `https://small-webs-jog.loca.lt/ai-chart-assistant/api/text-to-chart`
+
+Follow-up: add regression tests for the no-JavaScript submit flow.
+
+- [x] Add focused unittest coverage for rendered form and chart draft HTML.
+- [x] Add standalone HTTP regression coverage for `?prompt=...`.
+- [x] Run tests and syntax checks.
+
+Verification:
+
+- [x] `python -m unittest discover -s .\ai-chart-assistant\tests -v`
+- [x] `python -m py_compile superset\superset_config.py ai-chart-assistant\*.py ai-chart-assistant\tests\test_text_to_chart_ui.py`
+
+### Investigate Superset home loading delay 2026.05.27
+
+Goal: find why the Superset home page skeleton loaders stay visible for about
+10-15 seconds.
+
+Planned checks:
+
+- [x] Measure Superset home and API response times.
+- [x] Inspect targeted Superset logs for slow requests or backend errors.
+- [x] Identify likely bottleneck and recommend/fix the smallest scoped change.
+
 ### Fix Superset downtime chart viz type 2026.05.27
 
 Goal: fix the dashboard data error caused by unregistered `dist_bar` chart type.

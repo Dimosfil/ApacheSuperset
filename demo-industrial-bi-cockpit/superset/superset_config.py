@@ -1,4 +1,7 @@
 import os
+import sys
+import importlib.util
+from pathlib import Path
 
 from cachelib.redis import RedisCache
 
@@ -74,3 +77,80 @@ WEBDRIVER_BASEURL_USER_FRIENDLY = SUPERSET_PUBLIC_BASE_URL
 SQLLAB_TIMEOUT = 120
 SQLLAB_CTAS_NO_LIMIT = True
 APP_NAME = "Industrial BI Cockpit"
+
+AI_CHART_ASSISTANT_DIR = Path(os.getenv("AI_CHART_ASSISTANT_DIR", "/app/ai-chart-assistant"))
+
+
+def FLASK_APP_MUTATOR(app):
+    from flask import Blueprint, Response, jsonify, request, send_from_directory
+
+    assistant_path = str(AI_CHART_ASSISTANT_DIR)
+    if assistant_path not in sys.path:
+        sys.path.insert(0, assistant_path)
+
+    module_spec = importlib.util.spec_from_file_location(
+        "industrial_bi_ai_chart_assistant_app",
+        AI_CHART_ASSISTANT_DIR / "app.py",
+    )
+    assistant_module = importlib.util.module_from_spec(module_spec)
+    module_spec.loader.exec_module(assistant_module)
+    generate_chart_draft = assistant_module.generate_chart_draft
+    from chart_catalog import CHART_TYPES, DATASETS
+    from ui_renderer import render_index
+
+    blueprint = Blueprint("ai_chart_assistant", __name__, url_prefix="/ai-chart-assistant")
+    static_dir = AI_CHART_ASSISTANT_DIR / "static"
+
+    @blueprint.get("/")
+    def assistant_index():
+        prompt = str(request.args.get("prompt", "")).strip()
+        draft = None
+        error = ""
+        if prompt:
+            try:
+                draft = generate_chart_draft(prompt)
+            except Exception as exc:
+                error = str(exc)
+        nonce_func = app.jinja_env.globals.get("csp_nonce")
+        csp_nonce = nonce_func() if nonce_func else ""
+        response = Response(
+            render_index(prompt=prompt, draft=draft, error=error, csp_nonce=csp_nonce),
+            mimetype="text/html",
+        )
+        response.headers["Cache-Control"] = "no-store, max-age=0"
+        response.headers["Pragma"] = "no-cache"
+        response.headers["Expires"] = "0"
+        return response
+
+    @blueprint.get("/static/<path:filename>")
+    def assistant_static(filename):
+        return send_from_directory(static_dir, filename)
+
+    @blueprint.get("/health")
+    def assistant_health():
+        return jsonify({"status": "ok", "mounted_in": "superset"})
+
+    @blueprint.get("/api/datasets")
+    def assistant_datasets():
+        return jsonify({"datasets": DATASETS, "chart_types": CHART_TYPES})
+
+    def _chart_response_from_prompt(prompt):
+        prompt = str(prompt or "").strip()
+        if not prompt:
+            return jsonify({"error": "prompt is required"}), 400
+        return jsonify(generate_chart_draft(prompt))
+
+    @blueprint.get("/api/text-to-chart")
+    def assistant_text_to_chart_get():
+        return _chart_response_from_prompt(request.args.get("prompt", ""))
+
+    @blueprint.post("/api/text-to-chart")
+    def assistant_text_to_chart():
+        payload = request.get_json(silent=True) or {}
+        return _chart_response_from_prompt(payload.get("prompt", ""))
+
+    csrf = app.extensions.get("csrf")
+    if csrf:
+        csrf.exempt(blueprint)
+    app.register_blueprint(blueprint)
+    return app

@@ -55,6 +55,10 @@ services:
       SUPERSET_PUBLIC_HOST: ${SUPERSET_PUBLIC_HOST:-localhost}
       SUPERSET_PUBLIC_PORT: ${SUPERSET_PUBLIC_PORT:-${SUPERSET_PORT:-8088}}
       SUPERSET_PUBLIC_PROTOCOL: ${SUPERSET_PUBLIC_PROTOCOL:-http}
+      AI_CHART_ASSISTANT_DIR: /app/ai-chart-assistant
+      DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:-}
+      DEEPSEEK_MODEL: ${DEEPSEEK_MODEL:-deepseek-chat}
+      DEEPSEEK_BASE_URL: ${DEEPSEEK_BASE_URL:-https://api.deepseek.com}
       POSTGRES_HOST: ${POSTGRES_HOST:-postgres}
       POSTGRES_PORT: ${POSTGRES_PORT:-5432}
       POSTGRES_DB: ${POSTGRES_DB:-industrial_bi}
@@ -68,6 +72,7 @@ services:
       - ./superset/superset_config.py:/app/pythonpath/superset_config.py:ro
       - ./superset/bootstrap:/app/bootstrap:ro
       - ./superset/assets:/app/assets:ro
+      - ./ai-chart-assistant:/app/ai-chart-assistant:ro
     command: ["/bin/sh", "-c", "sh /app/bootstrap/init-superset.sh && superset run -h 0.0.0.0 -p 8088"]
 
   superset-worker:
@@ -123,6 +128,28 @@ services:
     command: ["celery", "--app=superset.tasks.celery_app:app", "beat", "--schedule=/tmp/celerybeat-schedule"]
     healthcheck:
       disable: true
+
+  ai-chart-assistant:
+    profiles: ["standalone-ai"]
+    image: python:3.12-slim
+    working_dir: /app
+    environment:
+      DEEPSEEK_MODEL: ${DEEPSEEK_MODEL:-deepseek-chat}
+      DEEPSEEK_BASE_URL: ${DEEPSEEK_BASE_URL:-https://api.deepseek.com}
+    ports:
+      - "${AI_CHART_ASSISTANT_PORT:-8099}:8099"
+    volumes:
+      - ./ai-chart-assistant:/app:ro
+    command: ["python", "app.py", "--host", "0.0.0.0", "--port", "8099"]
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8099/health', timeout=3)\"",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
 
 volumes:
   postgres-data:

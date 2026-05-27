@@ -29,6 +29,13 @@ demo-industrial-bi-cockpit/
       datasets/
       dashboards/
 
+  ai-chart-assistant/
+    app.py
+    chart_catalog.py
+    deepseek_client.py
+    prompt_parser.py
+    superset_draft.py
+
   plugins/
     superset-plugin-chart-oee-gauge/
       package.json

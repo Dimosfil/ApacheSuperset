@@ -1,0 +1,10 @@
+### Health
+GET http://localhost:8088/ai-chart-assistant/health
+
+### Generate chart draft
+POST http://localhost:8088/ai-chart-assistant/api/text-to-chart
+Content-Type: application/json
+
+{
+  "prompt": "Покажи простои по причинам за последние 30 дней"
+}

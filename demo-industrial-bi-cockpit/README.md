@@ -28,6 +28,7 @@ A reproducible local stack:
 - Redis and Celery for async/cache background capabilities
 - Superset config overrides
 - seeded mock industrial objects, dashboard dataset, metrics, and filters
+- AI text-to-chart assistant that can use DeepSeek API when configured
 - optional custom React/TypeScript visualization plugin
 
 ## Quick Start
@@ -89,6 +90,33 @@ If the dashboard list is empty after startup, create the demo dashboard objects:
 ```powershell
 docker compose exec superset python /app/bootstrap/create-demo-dashboard.py
 ```
+
+AI chart assistant on the same Superset site:
+
+```text
+http://localhost:8088/ai-chart-assistant/
+```
+
+When `DEEPSEEK_API_KEY` is set in the local environment or `.env`, the assistant
+uses DeepSeek Chat Completions to map user prompts to a controlled Superset chart
+draft. The first page includes a small browser UI for entering prompts and
+copying Superset params. Without a key, it uses deterministic demo rules. Details:
+[ai-chart-assistant/README.md](./ai-chart-assistant/README.md).
+
+With the current public demo host settings, the same page is available through
+the external Superset entrypoint:
+
+```text
+https://small-webs-jog.loca.lt/ai-chart-assistant/
+```
+
+AI assistant regression tests:
+
+```powershell
+python -m unittest discover -s ai-chart-assistant/tests -v
+```
+
+If `make` is available in the shell, `make test-ai` runs the same test suite.
 
 Detailed reviewer flow: [docs/reviewer-quickstart.md](./docs/reviewer-quickstart.md).
 Dashboard MVP: [docs/dashboard-mvp.md](./docs/dashboard-mvp.md).
