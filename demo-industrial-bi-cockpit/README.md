@@ -107,7 +107,7 @@ With the current public demo host settings, the same page is available through
 the external Superset entrypoint:
 
 ```text
-https://small-webs-jog.loca.lt/ai-chart-assistant/
+https://apache-superset-demo-fil-20260528.loca.lt/ai-chart-assistant/
 ```
 
 AI assistant regression tests:

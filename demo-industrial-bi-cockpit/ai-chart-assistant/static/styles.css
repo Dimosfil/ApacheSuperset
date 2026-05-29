@@ -137,7 +137,7 @@ textarea:focus {
 }
 
 .actions,
-.examples,
+.examples-list,
 .status-row,
 .panel-heading {
   display: flex;
@@ -219,6 +219,25 @@ button:disabled {
 
 .examples {
   margin-bottom: 24px;
+}
+
+.examples summary {
+  width: fit-content;
+  min-height: 36px;
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--accent-strong);
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 750;
+}
+
+.examples-note {
+  margin: 10px 0;
+  color: var(--muted);
+  font-size: 14px;
 }
 
 .examples .example-button {

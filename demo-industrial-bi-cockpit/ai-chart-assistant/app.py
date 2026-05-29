@@ -33,6 +33,50 @@ def generate_chart_draft(prompt):
     return response
 
 
+def generate_import_payload(prompt=""):
+    prompt = str(prompt or "").strip()
+    scenario = prompt or "industrial maintenance risk signals"
+    rows = [
+        {
+            "plant": "North Plant",
+            "metric": "Predicted downtime risk",
+            "value": 0.72,
+            "unit": "score",
+            "note": f"AI generated from: {scenario}",
+        },
+        {
+            "plant": "East Plant",
+            "metric": "Predicted downtime risk",
+            "value": 0.48,
+            "unit": "score",
+            "note": f"AI generated from: {scenario}",
+        },
+        {
+            "plant": "South Plant",
+            "metric": "Recommended spare parts buffer",
+            "value": 18,
+            "unit": "items",
+            "note": f"AI generated from: {scenario}",
+        },
+        {
+            "plant": "West Plant",
+            "metric": "Quality inspection priority",
+            "value": 0.64,
+            "unit": "score",
+            "note": f"AI generated from: {scenario}",
+        },
+    ]
+    return {
+        "status": "ready",
+        "source": "AI generated demo import",
+        "target_table": "ai_generated_imports",
+        "list_url": "/chart/list/",
+        "prompt": scenario,
+        "rows": rows,
+        "rows_imported": 0,
+    }
+
+
 class Handler(BaseHTTPRequestHandler):
     server_version = "IndustrialBIChartAssistant/0.1"
 
@@ -86,6 +130,13 @@ class Handler(BaseHTTPRequestHandler):
             self._send_json(200, {"status": "ok", "deepseek_enabled": deepseek_enabled()})
         elif parsed.path == "/api/datasets":
             self._send_json(200, {"datasets": DATASETS, "chart_types": CHART_TYPES})
+        elif parsed.path == "/api/import-data":
+            query = urllib.parse.parse_qs(parsed.query)
+            prompt = str(query.get("prompt", [""])[0]).strip()
+            payload = generate_import_payload(prompt)
+            payload["status"] = "preview"
+            payload["message"] = "Run inside Superset to import rows into PostgreSQL."
+            self._send_json(200, payload)
         elif parsed.path == "/api/text-to-chart":
             query = urllib.parse.parse_qs(parsed.query)
             prompt = str(query.get("prompt", [""])[0]).strip()
@@ -113,6 +164,14 @@ class Handler(BaseHTTPRequestHandler):
                     )
                 },
             )
+            return
+
+        if self.path == "/api/import-data":
+            payload = self._read_json()
+            response = generate_import_payload(payload.get("prompt", ""))
+            response["status"] = "preview"
+            response["message"] = "Run inside Superset to import rows into PostgreSQL."
+            self._send_json(200, response)
             return
 
         if self.path != "/api/text-to-chart":

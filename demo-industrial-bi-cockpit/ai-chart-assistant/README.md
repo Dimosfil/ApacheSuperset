@@ -16,7 +16,7 @@ http://localhost:8088/ai-chart-assistant/
 For the current external tunnel configuration:
 
 ```text
-https://small-webs-jog.loca.lt/ai-chart-assistant/
+https://apache-superset-demo-fil-20260528.loca.lt/ai-chart-assistant/
 ```
 
 ## Environment

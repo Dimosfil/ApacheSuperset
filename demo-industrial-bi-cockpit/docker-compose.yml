@@ -52,9 +52,12 @@ services:
       SUPERSET_ADMIN_EMAIL: ${SUPERSET_ADMIN_EMAIL:-admin@example.com}
       SUPERSET_DEFAULT_LOCALE: ${SUPERSET_DEFAULT_LOCALE:-en}
       SUPERSET_PROJECT_LOCALE: ${SUPERSET_PROJECT_LOCALE:-${SUPERSET_DEFAULT_LOCALE:-en}}
+      SUPERSET_DEMO_PUBLIC_AUTO_LOGIN: ${SUPERSET_DEMO_PUBLIC_AUTO_LOGIN:-false}
+      SUPERSET_DEMO_PUBLIC_AUTO_LOGIN_USER: ${SUPERSET_DEMO_PUBLIC_AUTO_LOGIN_USER:-${SUPERSET_ADMIN_USERNAME:-admin}}
       SUPERSET_PUBLIC_HOST: ${SUPERSET_PUBLIC_HOST:-localhost}
       SUPERSET_PUBLIC_PORT: ${SUPERSET_PUBLIC_PORT:-${SUPERSET_PORT:-8088}}
       SUPERSET_PUBLIC_PROTOCOL: ${SUPERSET_PUBLIC_PROTOCOL:-http}
+      SUPERSET_PUBLIC_TUNNEL_HOST_SUFFIX: ${SUPERSET_PUBLIC_TUNNEL_HOST_SUFFIX:-.loca.lt}
       AI_CHART_ASSISTANT_DIR: /app/ai-chart-assistant
       DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:-}
       DEEPSEEK_MODEL: ${DEEPSEEK_MODEL:-deepseek-chat}
@@ -72,6 +75,7 @@ services:
       - ./superset/superset_config.py:/app/pythonpath/superset_config.py:ro
       - ./superset/static/service-worker.js:/app/superset/static/service-worker.js:ro
       - ./superset/static/industrial-bi-shell.css:/app/superset/static/industrial-bi-shell.css:ro
+      - ./superset/static/industrial-bi-home-assist.js:/app/superset/static/industrial-bi-home-assist.js:ro
       - ./superset/bootstrap:/app/bootstrap:ro
       - ./superset/assets:/app/assets:ro
       - ./ai-chart-assistant:/app/ai-chart-assistant:ro
@@ -100,6 +104,7 @@ services:
       REDIS_PORT: ${REDIS_PORT:-6379}
     volumes:
       - ./superset/superset_config.py:/app/pythonpath/superset_config.py:ro
+      - ./ai-chart-assistant:/app/ai-chart-assistant:ro
     command: ["celery", "--app=superset.tasks.celery_app:app", "worker", "--pool=prefork", "-O", "fair", "-c", "2"]
     healthcheck:
       disable: true
@@ -127,9 +132,23 @@ services:
       REDIS_PORT: ${REDIS_PORT:-6379}
     volumes:
       - ./superset/superset_config.py:/app/pythonpath/superset_config.py:ro
+      - ./ai-chart-assistant:/app/ai-chart-assistant:ro
     command: ["celery", "--app=superset.tasks.celery_app:app", "beat", "--schedule=/tmp/celerybeat-schedule"]
     healthcheck:
       disable: true
+
+  public-tunnel:
+    image: node:22-alpine
+    depends_on:
+      superset:
+        condition: service_started
+    restart: unless-stopped
+    command:
+      [
+        "sh",
+        "-c",
+        "npx --yes localtunnel --port 8088 --local-host superset --subdomain ${PUBLIC_TUNNEL_SUBDOMAIN:-small-webs-jog}",
+      ]
 
   ai-chart-assistant:
     profiles: ["standalone-ai"]

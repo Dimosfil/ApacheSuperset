@@ -14,6 +14,213 @@ generated outputs, secrets, credentials, or private production data.
 
 ## Tasks
 
+### Align localtunnel public host 2026.05.28
+
+Goal: keep the Localtunnel subdomain, Superset public host, and demo docs in
+sync so the public Superset URL is predictable.
+
+Planned changes:
+
+- [x] Align `PUBLIC_TUNNEL_SUBDOMAIN` with `SUPERSET_PUBLIC_HOST`.
+- [x] Update public demo docs that still reference the previous tunnel host.
+- [x] Validate Docker Compose config.
+
+Verification:
+
+- [x] `docker compose config --quiet`
+- [x] `public-tunnel` logs show
+      `https://apache-superset-demo-fil-20260528.loca.lt`.
+- [x] `https://apache-superset-demo-fil-20260528.loca.lt/health` returns
+      `200 OK`.
+- [x] `https://apache-superset-demo-fil-20260528.loca.lt/chart/list/` returns
+      `200`, sets a session cookie, and does not render the login form.
+
+### Docker localtunnel public demo 2026.05.28
+
+Goal: provide an ngrok-like public URL for the local Docker Superset demo using
+a simple always-on Docker service.
+
+Planned changes:
+
+- [x] Replace the failed Cloudflare connector path with a `public-tunnel`
+      Docker service based on `localtunnel`.
+- [x] Remove the temporary Cloudflare DNS proxy file and local Cloudflare
+      tunnel token from `.env`.
+- [x] Allow demo auto-login for `*.loca.lt` tunnel hosts.
+- [x] Restart Superset and the tunnel.
+
+Verification:
+
+- [x] `docker compose config --quiet`
+- [x] `https://apache-superset-demo-fil-20260528.loca.lt/health` returns
+      `200 OK`.
+- [x] `https://apache-superset-demo-fil-20260528.loca.lt/chart/list/` returns
+      `200`, sets a session cookie, and does not render the login form.
+
+### Add persistent Cloudflare Tunnel service 2026.05.28
+
+Goal: make the Superset demo reachable through a persistent Cloudflare Tunnel
+without committing Cloudflare credentials.
+
+Planned changes:
+
+- [x] Add a Docker Compose `cloudflared` service with restart policy.
+- [x] Document the local-only tunnel token variable in `.env.example`.
+- [x] Validate Docker Compose config.
+
+Verification:
+
+- [x] `docker compose config --quiet`
+- [x] `docker compose --profile public-tunnel config --quiet`
+- [x] Verified the provided Cloudflare API token is active.
+- [x] Retrieved the connector token for existing tunnel `apache-superset-demo`
+      and wrote it to ignored local `.env`.
+- [!] Started `cloudflared`, but the connector remains inactive because the
+      current network refuses SRV DNS lookups for
+      `_v2-origintunneld._tcp.argotunnel.com`.
+
+Notes:
+
+- `cloudflared` service now uses `restart: unless-stopped`, explicit
+  Cloudflare DNS resolver entries, and `--protocol http2`.
+- Cloudflare API reports tunnel status `inactive` while local DNS blocks edge
+  discovery.
+
+### Hide demo shell after logout 2026.05.27
+
+Goal: keep the logged-out login page clean by removing demo shell assets and
+the AI Assist widget from unauthenticated/login/logout responses.
+
+Planned changes:
+
+- [x] Restrict Superset shell asset injection to authenticated Superset pages.
+- [x] Run focused syntax/config checks.
+- [x] Restart Superset and verify public login page has no widget.
+
+Verification:
+
+- [x] `python -m py_compile demo-industrial-bi-cockpit\superset\superset_config.py`
+- [x] `docker compose config --quiet`
+- [x] Recreated the Superset service.
+- [x] After public logout, `/chart/list/` lands on `/login/?next=...` without
+      `industrial-bi-home-assist`, `industrial-ai-assist`, or
+      `industrial-bi-shell` in the HTML.
+- [x] A fresh public session still auto-logins and receives the demo shell
+      assets.
+
+### Fix public tunnel logout loop 2026.05.27
+
+Goal: make explicit logout work on the public demo tunnel while keeping the
+demo auto-login behavior for fresh visitors.
+
+Planned changes:
+
+- [x] Add a logout-aware opt-out for demo public auto-login.
+- [x] Run focused syntax/config checks.
+- [x] Restart Superset and verify logout no longer immediately logs back in.
+
+Verification:
+
+- [x] `python -m py_compile demo-industrial-bi-cockpit\superset\superset_config.py`
+- [x] `docker compose config --quiet`
+- [x] Recreated the Superset service.
+- [x] Public session logout sets `demo_public_auto_login_disabled=1`; the next
+      `/chart/list/` request redirects to `/login/?next=...` instead of
+      auto-logging in.
+- [x] A fresh browser session still auto-logins to `/chart/list/`.
+
+### Set up Cloudflare tunnel for Superset demo 2026.05.27
+
+Goal: replace the fragile temporary localtunnel endpoint with a Cloudflare
+Tunnel path for the Superset demo without storing secrets in the repository.
+
+Planned changes:
+
+- [x] Install a project-local `cloudflared` binary.
+- [x] Verify the provided Cloudflare token can access the needed account.
+- [!] Start or prepare a tunnel for `192.168.3.55:8088`.
+- [x] Verify the existing public Superset route returns 200.
+
+Notes:
+
+- `cloudflared` 2026.5.2 was installed under ignored `tools/bin/`.
+- After updating token resources, the token sees account
+  `6704a7ccd4419faa316c293646fde2bf` but no zones.
+- Created Cloudflare named tunnel `apache-superset-demo`
+  (`20de5046-4f7b-4154-8670-20a5d4d5617c`) via API. Its connector remains
+  inactive because local `cloudflared` cannot connect to Cloudflare edge from
+  this network.
+- Accountless Quick Tunnel generated `trycloudflare.com` URLs, but the connector
+  could not establish an edge connection. System DNS resolves `argotunnel.com`
+  to a private/intercept range, and direct edge attempts failed TLS/HTTP2
+  handshake despite TCP reachability.
+- Attempts with `--protocol http2`, `--dns-resolver-addrs`, direct `--edge`
+  addresses, and `--edge-bind-address 192.168.3.55` still failed.
+- Existing `localtunnel` endpoint still works:
+  `https://small-webs-jog.loca.lt/chart/list/` returns 200 without the Sign in
+  form.
+
+### Fix public tunnel demo login 2026.05.27
+
+Goal: make the remote `small-webs-jog.loca.lt` demo open directly in Superset
+instead of showing the login form because the LAN cookie is not shared with the
+public tunnel domain.
+
+Planned changes:
+
+- [x] Add a demo-only public-host auto-login switch to Superset config.
+- [x] Enable the switch in the local demo `.env` and Compose environment.
+- [x] Restart Superset and verify public `/chart/list/` reaches the app as an
+      authenticated demo user.
+
+Verification:
+
+- [x] `python -m py_compile demo-industrial-bi-cockpit\superset\superset_config.py`
+- [x] `docker compose config --quiet`
+- [x] Recreated the Superset container.
+- [x] Restarted `localtunnel` after Superset recreation.
+- [x] `https://small-webs-jog.loca.lt/chart/list/` returned `200`, did not
+      contain the Sign in form, and set a `session` cookie for the public host.
+- [x] Public chart APIs in the same session returned `200`:
+      `/api/v1/chart/_info?q=(keys:!(permissions))` and
+      `/api/v1/chart/?q=(order_column:changed_on_delta_humanized,order_direction:desc,page:0,page_size:25)`.
+
+Notes:
+
+- The login screen on the public tunnel was expected after switching hostnames:
+  the LAN session cookie from `192.168.3.55` is not shared with
+  `small-webs-jog.loca.lt`.
+- The fix is demo-only and gated by `SUPERSET_DEMO_PUBLIC_AUTO_LOGIN=true`.
+
+### Restore Superset localtunnel 2026.05.27
+
+Goal: restore the public `small-webs-jog.loca.lt` tunnel after Chrome showed
+`503 - Tunnel Unavailable` for `/chart/list/`.
+
+Planned changes:
+
+- [x] Record the tunnel failure pattern and current binding details as project
+      experience.
+- [x] Verify the local Superset endpoint on the bound LAN address.
+- [x] Restart `localtunnel` against the correct local host.
+- [x] Verify the public `/chart/list/` route.
+
+Notes:
+
+- Superset is bound by Compose to `192.168.3.55:8088`, not
+  `127.0.0.1:8088`; tunnel restarts should use `--local-host 192.168.3.55`.
+- `503 - Tunnel Unavailable` from `*.loca.lt` usually means the local tunnel
+  process is down, disconnected, or pointing at the wrong local host/port.
+- Recovery command used from `demo-industrial-bi-cockpit`:
+  `npx --yes localtunnel --port 8088 --local-host 192.168.3.55 --subdomain small-webs-jog`.
+
+Verification:
+
+- [x] `http://192.168.3.55:8088/health` returned `200 OK`.
+- [x] `http://192.168.3.55:8088/chart/list/` returned `200`.
+- [x] `https://small-webs-jog.loca.lt/chart/list/` returned `200` after
+      restarting `localtunnel`.
+
 ### Fix Superset home left-edge clipping 2026.05.27
 
 Goal: restore safe left spacing on the Superset shell/home page so labels and
@@ -277,6 +484,38 @@ Notes:
 
 - Docker runtime startup is intentionally paused by user request. Continue by
   finishing project files and documentation only.
+
+### Main screen AI assist entry
+
+Goal: surface the existing AI Chart Assistant from the Superset main screen and
+add an AI data import action for the demo.
+
+Planned changes:
+
+- [x] Inject a small Superset-side AI assist launcher into HTML pages.
+- [x] Add a data import action wired to an assistant API endpoint.
+- [x] Style the launcher so it works on desktop and mobile.
+- [x] Cover the injected assets and API with focused tests.
+
+Verification:
+
+- [x] Run the AI assistant unittest suite.
+
+### AI assist simplified controls
+
+Goal: simplify AI assist controls to generation, import, and a compact examples
+dropdown.
+
+Planned changes:
+
+- [x] Leave only Generate and Import actions on the assistant page.
+- [x] Make Import redirect to the Superset chart list after the API succeeds.
+- [x] Convert example prompts into a dropdown with a short note.
+- [x] Align the main-screen AI widget labels and import redirect behavior.
+
+Verification:
+
+- [x] Run syntax checks and AI assistant tests.
 
 ### Sprint 1 planning
 

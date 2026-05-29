@@ -14,7 +14,7 @@ from pathlib import Path
 ASSISTANT_DIR = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ASSISTANT_DIR))
 
-from app import Handler
+from app import Handler, generate_import_payload
 from http.server import ThreadingHTTPServer
 from prompt_parser import generate_rule_based_draft
 from ui_renderer import render_index
@@ -38,6 +38,16 @@ class TextToChartUiTest(unittest.TestCase):
         self.assertEqual(draft["viz_type"], "echarts_timeseries_bar")
         self.assertEqual(draft["time_range"], "Last 30 days")
 
+    def test_import_payload_prepares_ai_generated_rows(self):
+        payload = generate_import_payload("maintenance risk import")
+
+        self.assertEqual(payload["status"], "ready")
+        self.assertEqual(payload["target_table"], "ai_generated_imports")
+        self.assertEqual(payload["list_url"], "/chart/list/")
+        self.assertEqual(payload["prompt"], "maintenance risk import")
+        self.assertGreaterEqual(len(payload["rows"]), 1)
+        self.assertEqual(payload["rows"][0]["plant"], "North Plant")
+
     def test_renderer_outputs_no_javascript_submit_form_and_draft_values(self):
         draft = generate_rule_based_draft("Show downtime by reason for the last 30 days")
         html = render_index(prompt="Show downtime by reason for the last 30 days", draft=draft)
@@ -45,16 +55,20 @@ class TextToChartUiTest(unittest.TestCase):
         self.assertIn('method="get"', html)
         self.assertIn('action="/ai-chart-assistant/"', html)
         self.assertIn("<script", html)
-        self.assertIn("Генерация...", html)
-        self.assertIn('id="create-chart-button"', html)
-        self.assertIn('id="chart-list-link"', html)
-        self.assertIn("/api/create-chart", html)
+        self.assertIn("Сгенерить", html)
+        self.assertIn('id="import-data-button"', html)
+        self.assertIn("/api/import-data", html)
+        self.assertIn("<summary>Примеры запросов</summary>", html)
+        self.assertIn("Это примеры.", html)
+        self.assertNotIn('id="create-chart-button"', html)
+        self.assertNotIn("Открыть JSON", html)
+        self.assertNotIn("Open Superset", html)
+        self.assertNotIn("Dataset catalog", html)
         self.assertIn("Show downtime by reason for the last 30 days", html)
         self.assertIn("downtime_events", html)
         self.assertIn("Downtime Hours", html)
         self.assertIn("reason_category", html)
         self.assertIn("echarts_timeseries_bar", html)
-        self.assertIn("/ai-chart-assistant/api/text-to-chart?prompt=Show%20downtime", html)
 
     def test_renderer_adds_csp_nonce_to_loading_script_when_provided(self):
         html = render_index(csp_nonce="abc123")
@@ -138,6 +152,24 @@ class StandaloneHttpFlowTest(unittest.TestCase):
         context.exception.close()
         self.assertEqual(context.exception.code, 501)
         self.assertIn("mounted inside Superset", payload["error"])
+
+    def test_standalone_import_data_returns_preview_without_database_write(self):
+        request = urllib.request.Request(
+            f"{self.base_url}/api/import-data",
+            data=json.dumps({"prompt": "maintenance risk import"}).encode("utf-8"),
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+
+        with urllib.request.urlopen(request, timeout=10) as response:
+            payload = json.loads(response.read().decode("utf-8"))
+
+        self.assertEqual(response.status, 200)
+        self.assertEqual(payload["status"], "preview")
+        self.assertEqual(payload["target_table"], "ai_generated_imports")
+        self.assertEqual(payload["list_url"], "/chart/list/")
+        self.assertEqual(payload["rows_imported"], 0)
+        self.assertIn("Run inside Superset", payload["message"])
 
 
 def _free_port():
