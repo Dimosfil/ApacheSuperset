@@ -135,12 +135,47 @@ Inspect logs:
   config-service URL for the current environment. Validate before saving:
   require a full `http://` or `https://` URL and reject secrets, tokens,
   usernames, passwords, query strings, and fragments.
+- Treat `gi config service on` as enabling this application's own
+  config-service self-registration, and `gi config service off` as disabling
+  only that local self-registration flag. Do not reinterpret `on` or `off` as
+  starting or stopping the config-service process. When enabling
+  self-registration, require an already configured config-service URL or stop
+  and ask the user to set `gi config service url=<url>` first.
+- Treat `gi reboot` and `gi restart` as requests to start or restart the
+  current application using project-local run instructions. If the app is
+  running, restart it; otherwise start it in the background.
+- For web-facing services that self-register in config-service, check the
+  current config-service config on every process startup before publishing or
+  refreshing this app's own service record. Query this app's `service_id`,
+  create a missing record with the current port and documented endpoints, and
+  refresh stale port or endpoint records. Use cached config only as an
+  explicitly documented degraded-startup fallback.
+- Treat `gi ftp`, `gi ftp push`, and `gi ftp config` as the project FTP/SFTP
+  deployment command family: `config` creates, inspects, or updates local
+  deploy settings without uploading, while `ftp` and `ftp push` upload the
+  configured build output. Store private deploy settings in
+  `tools/deploy/ftp.local.json` or a stricter local equivalent, keep it ignored
+  when it may contain secrets, and prefer redacted examples for git.
+- Treat `gi ftp service` as manual registration, inspection, or selection of an
+  FTP/FTPS/SFTP service record through config-service without uploading. Resolve
+  FTP-capable services through config-service before asking for host details;
+  if several services match, ask with numbered Markdown checkboxes.
+- Treat `gi ftp folder` as inspecting, choosing, or updating the remote upload
+  folder without uploading. It should update only `remotePath` unless the user
+  explicitly asks to change other FTP settings.
 - For task-manager workflows, store only the enabled manager id, `service_id`,
   and non-secret project preferences in project memory. Resolve runtime details
   through config-service with `GET /services/{serviceId}`, check
   `endpoints.availability`, read `endpoints.contract`, and use `endpoints.api`
   for manager operations. Stop with a concise blocker if the manager id is
   missing or config-service has no matching service record.
+- For WorkNest sprint workflows, verify endpoint methods and query parameters
+  against the adapter contract before calling them. The documented next-task
+  endpoint is `GET /agent-intake/next-task?project=<project>&sprintId=<sprintId>`.
+  If a manager returns an unexpected method, parameter, or route error, re-read
+  the adapter endpoint docs before trying any workaround; if the docs still do
+  not match the running service, report a stale or misconfigured manager and
+  stop.
 - Treat nested checkouts, vendored repositories, cloned examples, and
   third-party source trees as separate scope. Do not inspect them as part of the
   main project unless the user explicitly asks, the task is about that nested
@@ -165,6 +200,13 @@ Inspect logs:
   Do not use another project folder or the shared instruction library as a
   runtime fallback unless the user explicitly gives that path and action.
 - Do not commit secrets, credentials, local databases, logs, or generated caches.
+- Preserve existing file encodings when editing. On Windows, do not rewrite
+  source files with PowerShell `Get-Content ... | Set-Content ...` pipelines
+  unless both read and write encodings are explicit and known correct. Prefer
+  `apply_patch`, editor-native saves, or language APIs with explicit encodings
+  such as UTF-8. If non-ASCII text turns into mojibake after a command, stop,
+  restore the last clean file version, and reapply only the intended small
+  patch.
 - Do not print full `git diff` output by default. Prefer `git diff --stat` and
   targeted queries for relevant files or patterns.
 - For first-pass project study, read local instructions, README, manifests, and
@@ -215,6 +257,9 @@ Inspect logs:
   concise numbered Markdown checklist of available languages with the current
   selection checked, and tell the user they may answer with numbers or language
   names in priority order.
+- Render language selection choices as task-list bullets with the visible
+  number inside the label, for example `- [x] 1. English`, not ordered-task
+  syntax such as `1. [x] English`.
 - If the user replies with only numbers, such as `1 2`, map the numbers to the
   most recent language checklist and preserve that order for the current step.
   Do not ask what the numbers mean when the numbered checklist was just shown.

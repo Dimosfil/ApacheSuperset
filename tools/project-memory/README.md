@@ -58,6 +58,24 @@ The SQLite file is usually local/generated and ignored by git when it is large
 or rebuildable. Commit the indexing script, schema notes, and Markdown exports
 instead.
 
+Rebuild the generated index from git tracked repository content:
+
+```powershell
+python .\tools\project-memory\build_project_memory_index.py rebuild
+```
+
+Check index size:
+
+```powershell
+python .\tools\project-memory\build_project_memory_index.py stats
+```
+
+Search indexed content:
+
+```powershell
+python .\tools\project-memory\build_project_memory_index.py search "gi config"
+```
+
 Use the database for verified facts, searchable file/symbol indexes, debugging
 findings, useful commands, recurring failures, and durable notes with evidence
 paths. Do not store secrets, credentials, private user data, or production data.

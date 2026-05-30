@@ -14,6 +14,36 @@ generated outputs, secrets, credentials, or private production data.
 
 ## Tasks
 
+### Instruction kit update 2026-05-30
+
+Goal: update the copied GI instruction kit from `2026.05.27.4` to
+`2026.05.30.1`.
+
+Planned changes:
+
+- [x] Apply pending migration guidance to local agent instructions.
+- [x] Add or refresh project-memory SQLite index helper files.
+- [x] Add WorkNest task-manager adapter references if missing.
+- [x] Record applied migrations in instruction-kit metadata.
+
+Execution order:
+
+- [x] Restore compact project context and list pending migrations.
+- [x] Patch/copy only instruction-kit files.
+- [x] Run migration and diff checks.
+- [x] Commit and push update-only changes if clean.
+
+Risks or dependencies:
+
+- [ ] Preserve local project-specific rules and avoid unrelated app changes.
+- [x] Keep generated SQLite databases and secrets out of git.
+
+Verification:
+
+- [x] `python .\tools\project-memory\build_project_memory_index.py rebuild`
+- [x] `python .\tools\project-memory\build_project_memory_index.py stats`
+- [x] `git diff --check`
+
 ### Align localtunnel public host 2026.05.28
 
 Goal: keep the Localtunnel subdomain, Superset public host, and demo docs in
