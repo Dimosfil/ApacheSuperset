@@ -43,6 +43,11 @@ live context small by starting new sessions for unrelated tasks, using compact
 handoff summaries instead of long investigation history, and splitting multi-step
 R&D when later steps do not need the full previous reasoning trace.
 
+During `gi start` or `gi restore`, do not treat remembered plans, stale task
+notes, old refactoring phases, or local commits ahead of a remote as the next
+action. Mention them only as compact context when relevant, then ask for the
+user's current task instead of offering to continue, run, push, or finish them.
+
 ## Durable Memory
 
 Durable project knowledge lives in:
@@ -71,6 +76,22 @@ failure patterns, token-saving tactics, and agent-instruction improvements that
 could help other projects. Keep recommendations concise, evidence-backed, and
 free of secrets, private user data, production data, and unnecessary
 project-specific details.
+
+When maintaining a shared instruction-library project, a user request to add or
+accept a reusable rule may also be treated as approval to finish that accepted
+instruction change end to end: update the relevant files, verify them, commit
+and push only the scoped rule changes, then run the `gi обновить` update flow
+when accepted instruction-kit propagation applies. Do not include unrelated
+dirty worktree changes, secrets, private data, or generated noise; do not
+recurse into another commit/push merely because this finish rule itself was
+added or run.
+
+Accepted RAG, startup, command, workflow, and agent-safety rules must apply to
+both the shared instruction source repository and every consuming project. When
+changing an accepted reusable rule, update the source repository's live files,
+the copied-project templates, accepted migrations, version/changelog, and local
+instruction-kit metadata so future `gi обновить` runs can propagate the same
+rule.
 
 ## Common Commands
 
@@ -119,11 +140,28 @@ Inspect logs:
 - Keep changes scoped to the current task.
 - Ask before destructive operations, broad refactors, or unrelated scope
   expansion.
+- On Windows, prefer PowerShell-native networking commands
+  (`Invoke-RestMethod` and `Invoke-WebRequest`) instead of `curl.exe`.
+- Do not probe for curl with `where.exe curl` or `Get-Command curl` unless the
+  user explicitly asks for curl diagnostics.
+- If a request only needs an HTTP call, use `Invoke-RestMethod -Uri ...` by
+  default.
+- Prefer bundled/user tools from `%USERPROFILE%\.codex\bin` before WindowsApps
+  or System32 shims.
+- If antivirus blocks agent commands, trust narrow Codex-owned folders such as
+  `%USERPROFILE%\.codex\.sandbox-bin\` and `%USERPROFILE%\.codex\bin\`, not
+  broad System32 or PowerShell exclusions.
 - Treat this project root as the filesystem boundary for normal work. Do not
   read, search, edit, create, delete, move, or inspect files in another project
   or arbitrary external folder unless the user gives an explicit concrete path
   and action. Use APIs, connectors, or task-manager endpoints for cross-project
   communication.
+- Keep configuration values at configuration boundaries. Do not hard-code
+  deployment, user, runtime, machine, service, credential, path, feature-flag,
+  limit, model, remote folder, or operational-policy values into source or
+  committed examples. Use project-local config, environment variables,
+  config-service records, or documented secret references; validate absolute
+  paths at startup or I/O boundaries.
 - Treat `gi config`, `gi config service`, `gi конфиг`, and `ги конфиг` as
   requests to get the bootstrap config for the config/discovery service. Read a
   project-local override only if local instructions define one, then read GI
@@ -166,9 +204,27 @@ Inspect logs:
 - For task-manager workflows, store only the enabled manager id, `service_id`,
   and non-secret project preferences in project memory. Resolve runtime details
   through config-service with `GET /services/{serviceId}`, check
-  `endpoints.availability`, read `endpoints.contract`, and use `endpoints.api`
-  for manager operations. Stop with a concise blocker if the manager id is
-  missing or config-service has no matching service record.
+  `endpoints.availability`, read `endpoints.guide` when present, read
+  `endpoints.contract`, and use `endpoints.api` for documented manager
+  operations. Stop with a concise blocker if the manager id is missing or
+  config-service has no matching service record.
+- Treat `gi manager`, `gi tm`, `gi manager test`, `ги менеджер`, and
+  `ги манагер` as task-manager inspection commands. Read the enabled manager id
+  or `service_id` from project-local task-manager config, resolve it through
+  `GET /services/{serviceId}`, read `endpoints.guide` when present, read
+  `endpoints.contract`, and use `endpoints.api` only for documented manager
+  operations.
+- Treat `gi active task`, `gi next task`, `gi get task`, and equivalent
+  active-task wording as requests to obtain executable work from the configured
+  task manager. Resolve the manager through config-service, use only documented
+  active-task, next-task, start/progress, blocker, completion, and readback
+  operations, and send lifecycle updates back when the manager supports them.
+- Treat `gi add sprint`, `gi create sprint`, `gi добавить спринт`, and
+  equivalent add-sprint wording as requests to create a visible executable
+  Sprint/Cycle through the configured task manager. Use only documented
+  sprint/cycle or executable-plan creation operations, read the created object
+  back when supported, and do not downgrade the request to raw intake, local
+  checklists, or another substitute object.
 - For WorkNest sprint workflows, verify endpoint methods and query parameters
   against the adapter contract before calling them. The documented next-task
   endpoint is `GET /agent-intake/next-task?project=<project>&sprintId=<sprintId>`.
@@ -176,10 +232,27 @@ Inspect logs:
   the adapter endpoint docs before trying any workaround; if the docs still do
   not match the running service, report a stale or misconfigured manager and
   stop.
+- Agent-facing HTTP services should expose a compact guide plus a strict
+  contract, preferably `GET /agent/guide` and `GET /agent/contract`, or
+  adapter-specific equivalents such as `GET /agent-intake/guide` and
+  `GET /agent-intake/contract`. Service records should publish
+  `endpoints.guide` when available, plus `endpoints.contract` and
+  `endpoints.api`.
 - Treat nested checkouts, vendored repositories, cloned examples, and
   third-party source trees as separate scope. Do not inspect them as part of the
   main project unless the user explicitly asks, the task is about that nested
   tree, or local instructions identify it as an active workspace component.
+- Do not remove `AGENTS.md`, `tools/`, `tools/project-memory/`, `skills/`,
+  bootstrap scripts, update scripts, deploy scripts, or agent-facing
+  instruction/config files merely because they look internal. Inspect their
+  purpose first and treat them as possible RAG/startup infrastructure; delete
+  them only when the user explicitly confirms they are temporary or unrelated.
+- Classify `*.sqlite`, `*.sqlite3`, and `*.db` before deleting or committing.
+  Keep generated agent-memory indexes ignored when rebuildable; commit
+  reviewable README files, Markdown/JSON memory exports, schemas, and indexing
+  scripts when useful. Never commit databases containing secrets, private data,
+  telemetry, task-manager state, absolute local paths, or agent conversation
+  history.
 - Treat user-home application data and personal telemetry as private external
   sources. Do not read `.codex`, `.cursor`, IDE logs, browser profiles, shell
   history, application SQLite databases, or local app logs outside the project
@@ -245,6 +318,17 @@ Inspect logs:
   `fix`, `почини`, or `gi почини`.
 - Keep commit-message language preferences separate from the agent's
   user-facing working language.
+- When the user or team agrees that a feature must work in a specific sequence
+  or state flow, record it as a project-local feature workflow contract. Before
+  changing a feature with a recorded contract, read the contract and preserve
+  its user-visible guarantees unless the user explicitly changes them. If
+  implementation changes the agreed workflow, update the contract in the same
+  scoped change and report the behavior change.
+- For non-trivial features, keep a durable project-local feature document with
+  the feature idea, functional description, workflow contract, implementation
+  plan, sprint breakdown, tasks, definitions of done, and verification. Tasks
+  do not replace the feature contract; they describe work, while the contract
+  describes behavior that must remain true.
 - Treat `gi language`, `gi язык`, `ги язык`, `gi project language`,
   `gi проект язык`, `ги проект язык`, `gi язык проекта`, and
   `ги язык проекта` as requests to configure unified project language order for

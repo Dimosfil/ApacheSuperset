@@ -1,9 +1,10 @@
 ﻿{
-    "instruction_kit_version":  "2026.06.05.1",
+    "instruction_kit_version":  "2026.06.11.5",
     "source":  "D:\\AI\\general-instructions",
     "installed_at":  "2026-05-26T11:40:42.1062162+03:00",
     "update_check":  {
                          "shared_library_path":  "D:\\AI\\general-instructions",
+                         "source_repo":  "https://github.com/Dimosfil/general-instructions.git",
                          "enabled":  true
                      },
     "copied_files":  [
@@ -23,6 +24,7 @@
                          "tools/project-memory/build_project_memory_index.py",
                          "skills/task-manager-plans/SKILL.md",
                          "skills/task-manager-plans/references/managers/worknest.md",
+                         "templates/FEATURE_WORKFLOW_CONTRACT.template.md",
                          ".gitignore"
                      ],
     "applied_migrations":  [
@@ -86,7 +88,19 @@
                                "2026.05.29.2__web_services_self_register_when_missing",
                                "2026.05.29.3__resolve_ftp_services_through_config_service",
                                "2026.05.29.4__add_explicit_ftp_push_and_folder_commands",
-                               "2026.05.30.1__clarify_worknest_next_task_endpoint_contract"
+                               "2026.05.30.1__clarify_worknest_next_task_endpoint_contract",
+                               "2026.06.06.1__add_windows_tool_setup_and_rule_finish_policy",
+                               "2026.06.06.2__require_task_manager_active_task_lifecycle",
+                               "2026.06.06.3__add_task_manager_add_sprint_command",
+                               "2026.06.06.4__add_agent_service_guide_endpoint",
+                               "2026.06.08.1__prefer_relative_shared_instruction_paths",
+                               "2026.06.08.2__use_github_source_repo_for_instruction_updates",
+                               "2026.06.09.1__add_configuration_boundary_rule",
+                               "2026.06.11.1__protect_rag_cleanup_assets",
+                               "2026.06.11.2__add_feature_workflow_contracts",
+                               "2026.06.11.3__add_feature_planning_hierarchy",
+                               "2026.06.11.4__clarify_gi_manager_config_service_flow",
+                               "2026.06.11.5__self_apply_and_propagate_accepted_rules"
                            ],
-    "last_update_check_at":  "2026-06-05T14:03:26+03:00"
+    "last_update_check_at":  "2026-06-11T16:24:36+03:00"
 }

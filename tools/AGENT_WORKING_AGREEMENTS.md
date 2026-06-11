@@ -33,6 +33,14 @@
 - Do not revert user changes unless explicitly requested.
 - Treat dirty worktrees as normal.
 - If user changes affect the task, work with them.
+- Preserve recorded feature workflow contracts. If a feature has an agreed
+  runtime workflow, loading order, branching state flow, background work, or
+  user-visible guarantee, read that contract before changing the feature and
+  update it in the same scoped change when behavior intentionally changes.
+- For non-trivial features, keep the feature idea, functional description,
+  workflow contract, implementation plan, sprint breakdown, task breakdown,
+  definitions of done, and verification connected. Tasks do not replace the
+  feature contract.
 
 ## Git
 
@@ -54,6 +62,12 @@
   only the resulting instruction-kit update changes when this project is a git
   repository with a configured remote. If unrelated/user changes, no remote,
   push failure, or conflicts are present, stop and explain the blocker.
+- In a shared instruction-library project, a user request to add or accept a
+  reusable rule is also an explicit finish request for that accepted rule:
+  verify, commit, and push only the scoped rule changes, then run the
+  `gi обновить` update flow when accepted instruction-kit propagation applies.
+  Do not include unrelated dirty worktree changes or recurse merely because this
+  finish rule itself was added or run.
 - Branch naming: `TODO`.
 - Generated files policy: `TODO`.
 - Never commit secrets, credentials, local databases, logs, or caches.
@@ -70,7 +84,10 @@
   checklist showing `English` as always selected and current additional
   languages as checked. Explain that `English` is the required primary
   commit-message language and cannot be disabled. Ask the user to reply with
-  language names or numbers.
+  language names or numbers. Render each option as a task-list bullet with the
+  number inside the label, such as `- [x] 1. English`; do not use
+  `1. [x] English`, because some chat renderers split the checkbox and label
+  onto separate lines.
 - When reporting this change, mention the plain
   `tools/project-memory/git-preferences.json` path instead of malformed or
   placeholder markdown links.
@@ -90,23 +107,37 @@ or:
 
 - Follow `tools/project-memory/system-preferences.json` for the agent's
   user-facing working language in this project.
-- Apply the configured project working-environment language order to plans,
-  checklists, progress updates, final answers, clarifying questions, and
-  user-facing explanations.
-- Apply the configured task language order to agent-created task titles, task
-  descriptions, and task-manager updates.
-- Do not apply the configured language order to existing task text, code,
+- Apply the configured system or project language to progress updates, final
+  answers, clarifying questions, user-facing explanations, agent-created task
+  titles, task descriptions, task-manager updates, plans, and checklists.
+- For task titles, descriptions, and task-manager updates, treat the first
+  configured task language as the main language. If exactly one task language is
+  configured, write task text only in that language. If multiple task languages
+  are configured, write the main-language text first and then add one clear
+  translation per additional language. Do not duplicate the same content twice
+  in one language, and do not mix untranslated labels, templates, or Definition
+  of Done text from another configured language into the main-language text.
+- Do not apply the system or project language to existing task text, code,
   commands, logs, quoted text, or a response language the user explicitly
   requested for a specific message.
+- Treat `gi language`, `gi язык`, `ги язык`, `gi project language`,
+  `gi проект язык`, `ги проект язык`, `gi язык проекта`, and `ги язык проекта`
+  as requests to configure three ordered language sequences: project working
+  environment, commit messages, and tasks.
+- If the unified project-language command does not include explicit languages,
+  ask in three numbered steps. For each step, show a concise numbered Markdown
+  checklist with the available languages and the current selection, then accept
+  the user's next answer as numbers or language names for that step.
+- If the user replies with only numbers, such as `1 2`, map them to the most
+  recent checklist and preserve that order. Do not ask what those numbers mean
+  after showing the checklist.
 - Treat `gi system language`, `gi систем язык`, and `ги систем язык` as
   requests to configure this preference.
-- The unified `gi language` command configures project working-environment,
-  commit-message, and task languages together, while separate legacy commands
-  remain available for compatibility.
-- Keep this setting distinct from commit-message languages. `gi commit
+- Keep this setting separate from commit-message languages. `gi commit
   language`, `gi коммит язык`, `ги коммит язык`, and older `gi язык коммита`
   forms configure `tools/project-memory/git-preferences.json`, not the agent's
-  working language.
+  working language. The unified project-language command updates both
+  preference files.
 - If the user explicitly wants to configure the system language manually, they
   can run:
 
@@ -172,28 +203,6 @@ or:
 - `gi` means `general-instructions`, not `git`. Missing `.git` blocks only the
   automatic commit/push step after a successful GI update; it does not block
   checking or applying instruction-kit file updates.
-- Treat `gi config service on` as enabling this application's own
-  config-service self-registration, and `gi config service off` as disabling
-  only that local self-registration flag. Require an existing config-service URL
-  before enabling it, and do not treat `on` or `off` as process control for the
-  config-service itself.
-- Treat `gi reboot` and `gi restart` as requests to start or restart the current
-  application through project-local run instructions, launching it in the
-  background if it is not already running.
-- If this project has a web-facing service with config-service
-  self-registration enabled, startup must read current config-service settings
-  before publishing this app's service record, create a missing record for its
-  own `service_id`, and refresh stale ports or endpoints. Cached config is only
-  an explicitly documented degraded-startup fallback.
-- Treat `gi ftp config` as creating, inspecting, or updating local FTP/SFTP
-  deployment settings without uploading; treat `gi ftp` and `gi ftp push` as
-  uploading the configured build output.
-- Treat `gi ftp service` as selecting or registering an FTP/FTPS/SFTP service
-  record through config-service without uploading. Resolve FTP-capable services
-  before asking for host details, and use numbered Markdown checkboxes when the
-  user must choose among several records.
-- Treat `gi ftp folder` as choosing or updating the remote upload folder
-  (`remotePath`) without uploading or changing unrelated FTP settings.
 - Treat `gi саммари` and `gi summary` as requests to write a handoff summary
   file under `tools/summary/`, not only as requests to summarize in chat.
 - Treat `gi гит-обзор` and `gi git summary` as requests to summarize the latest
@@ -204,25 +213,6 @@ or:
   test commands and produce a compact verification plan for the current feature,
   bug fix, or release check. Plan first; run checks only when the user asks or
   when the current task already requires verification.
-- Treat `gi language`, `gi язык`, `ги язык`, `gi project language`,
-  `gi проект язык`, `ги проект язык`, `gi язык проекта`, and
-  `ги язык проекта` as the unified project-language command family. It updates
-  both `tools/project-memory/system-preferences.json` and
-  `tools/project-memory/git-preferences.json`.
-- If the unified project-language command is sent without explicit languages,
-  ask in three sequential chat steps: project working environment languages,
-  commit-message languages, and task languages. At each step, show the same
-  concise numbered Markdown checklist of available languages, with the current
-  selection checked, and tell the user they may answer with numbers or language
-  names in priority order.
-- Render language selection choices as task-list bullets with the visible
-  number inside the label, for example `- [x] 1. English`, not ordered-task
-  syntax such as `1. [x] English`.
-- If the user replies with only numbers, such as `1 2`, map the numbers to the
-  most recent checklist and preserve that order for the current step. Do not ask
-  what the numbers mean when the numbered checklist was just shown.
-- Keep direct inline forms such as `gi язык: 2 1` working as a single selection
-  applied to all three surfaces unless separate values are supplied.
 - Treat a first message that points to a shared instruction library as an
   instruction bootstrap, not as a request to add that library as a dependency.
 - If the user asks to update from a shared instruction library and this project
@@ -242,13 +232,6 @@ or:
 - Prefer patch-style edits for manual changes.
 - Avoid unrelated formatting churn.
 - Add comments only when they clarify non-obvious behavior.
-- Preserve existing file encodings when editing. On Windows, do not rewrite
-  source files with PowerShell `Get-Content ... | Set-Content ...` pipelines
-  unless both read and write encodings are explicit and known correct. Prefer
-  `apply_patch`, editor-native saves, or language APIs with explicit encodings
-  such as UTF-8. If non-ASCII text turns into mojibake after a command, stop,
-  restore the last clean file version, and reapply only the intended small
-  patch.
 
 ## Task Planning
 
@@ -273,13 +256,6 @@ or:
 - Recommendations should explain the observed problem, reusable rule or
   workflow, evidence paths, affected files or commands, risks, and privacy
   review.
-- Treat recommendation source projects and owners as provenance only. Reading a
-  recommendation in the shared instruction library's `updates/` folder is
-  allowed during `general-instructions` maintenance, but evidence paths, project
-  names, task-manager notes, product plans, or owner labels in a recommendation
-  are not permission to read, search, edit, or inspect the source project. Ask
-  the user or that project's owner for an explicit concrete path and action
-  before crossing the repository boundary.
 - Capture reusable workflows, failure patterns, token-saving tactics, and
   agent-instruction improvements that could improve `gi` for other projects.
 - Do not add a shared instruction library as a project dependency, package,
@@ -289,20 +265,20 @@ or:
 ## Task Managers
 
 - Treat task-manager configuration as project-local state.
-- Store each enabled manager's `service_id`, normally the same value as the
-  manager `id`, plus non-secret project preferences.
-- Do not store runtime API URLs such as `base_url` for managers that are
-  registered in config-service.
-- Resolve manager runtime details through config-service with
-  `GET /services/{serviceId}`. Use `endpoints.availability` for availability
-  checks, read `endpoints.contract` before workflow operations, and use
-  `endpoints.api` for task-manager operations after reading the contract.
-- Stop with a concise blocker if the manager id is missing or config-service
-  has no matching service record.
-- Do not scan sibling project folders, guess ports, or copy URLs from old
-  task-manager memory as a runtime fallback.
-- Before posting plans or starting sprint work, verify the workflow-specific
-  manager capabilities, not only generic health.
+- Store only the manager name or `service_id` plus non-secret project
+  preferences in project memory.
+- Resolve task-manager runtime URLs through GI config-service by service id;
+  do not store, guess, or copy API endpoints from old notes or other projects.
+- If a configured manager id is missing from config-service, stop with a concise
+  blocker instead of falling back to port scans or stale task-manager memory.
+- Before posting plans or starting sprint work, read the manager guide when
+  present, then verify the workflow-specific manager contract and capabilities,
+  not only generic health.
+- For agent-facing HTTP services, treat `endpoints.guide` as service-owned
+  onboarding and `endpoints.contract` as strict workflow validation. If the
+  guide and contract disagree about endpoints, ownership, or permissions, stop
+  and report the mismatch instead of inferring behavior from stale memory,
+  filesystem paths, dashboard URLs, or raw receipts.
 - Treat task managers as work queues and lifecycle recorders, not as the actors
   doing implementation work. The agent takes, implements, verifies, and reports
   tasks through the manager.
@@ -310,12 +286,6 @@ or:
   rejection, or explicit intake-only documentation. Do not create replacement
   one-task plans to work around raw task receipts that cannot be advanced
   through lifecycle endpoints.
-- For WorkNest sprint workflows, verify endpoint methods and query parameters
-  against the adapter contract before calling them. The documented next-task
-  endpoint is `GET /agent-intake/next-task?project=<project>&sprintId=<sprintId>`.
-  If a manager returns an unexpected method, parameter, or route error, re-read
-  adapter endpoint docs before trying any workaround; if the docs still do not
-  match the running service, report a stale or misconfigured manager and stop.
 
 ## Verification
 

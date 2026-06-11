@@ -20,10 +20,11 @@ When this project reveals a reusable workflow, failure pattern, token-saving
 tactic, or agent-instruction improvement, write a concise recommendation for the
 shared instruction kit.
 
-Prefer the shared intake folder when available:
+Prefer the `updates/` folder in an available checkout/cache of the canonical
+shared-instruction source repo when this repository is being maintained:
 
 ```text
-D:\AI\general-instructions\updates\
+<general-instructions checkout>\updates\
 ```
 
 If the shared library is unavailable, use a local intake folder:
@@ -57,24 +58,6 @@ tools/project-memory/project_memory.sqlite
 The SQLite file is usually local/generated and ignored by git when it is large
 or rebuildable. Commit the indexing script, schema notes, and Markdown exports
 instead.
-
-Rebuild the generated index from git tracked repository content:
-
-```powershell
-python .\tools\project-memory\build_project_memory_index.py rebuild
-```
-
-Check index size:
-
-```powershell
-python .\tools\project-memory\build_project_memory_index.py stats
-```
-
-Search indexed content:
-
-```powershell
-python .\tools\project-memory\build_project_memory_index.py search "gi config"
-```
 
 Use the database for verified facts, searchable file/symbol indexes, debugging
 findings, useful commands, recurring failures, and durable notes with evidence
